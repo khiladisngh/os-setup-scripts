@@ -1,195 +1,344 @@
-# OS Setup Scripts
+# 🚀 OS Setup Scripts
 
-A collection of comprehensive setup scripts for configuring modern development environments on different operating systems.
+<div align="center">
 
-## Available Scripts
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![Fedora](https://img.shields.io/badge/Fedora-294172?style=for-the-badge&logo=fedora&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 
-### 🐧 Linux Development Environment Setup
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Shell Script](https://img.shields.io/badge/shell_script-%23121011.svg?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![PowerShell](https://img.shields.io/badge/PowerShell-%235391FE.svg?style=for-the-badge&logo=powershell&logoColor=white)](https://docs.microsoft.com/en-us/powershell/)
 
-#### Fedora 42 KDE Plasma Wayland (`setup-fedora-42.sh`)
+[![GitHub stars](https://img.shields.io/github/stars/khiladisngh/os-setup-scripts?style=for-the-badge)](https://github.com/khiladisngh/os-setup-scripts/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/khiladisngh/os-setup-scripts?style=for-the-badge)](https://github.com/khiladisngh/os-setup-scripts/network)
+[![GitHub issues](https://img.shields.io/github/issues/khiladisngh/os-setup-scripts?style=for-the-badge)](https://github.com/khiladisngh/os-setup-scripts/issues)
 
-Complete installation and configuration script for a modern development environment on Fedora 42 KDE Plasma with Wayland.
+</div>
 
-**Features:**
+> 🎯 **Automated development environment setup scripts for multiple operating systems**
 
-- System update and NVIDIA driver installation
-- ZSH with Oh My ZSH and essential plugins
-- Starship terminal prompt with custom configuration
-- Python development tools (pyenv, Poetry, uv)
-- Rust development environment (rustup, cargo tools)
-- Go development environment
-- C++ build tools and development environment
-- Modern CLI tools (ripgrep, bat, fd, eza, zoxide, etc.)
-- Container tools (Docker, Podman)
-- Nerd Fonts (FiraCode, JetBrains Mono)
-- GitHub CLI
-- Comprehensive aliases and configurations
+A collection of comprehensive, production-ready setup scripts for configuring modern development environments across different operating systems. Each script is designed to transform a fresh OS installation into a fully configured development powerhouse.
 
-**Prerequisites:**
+## 📊 Platform Support
 
-- Fresh installation of Fedora 42 KDE Plasma (Wayland session)
-- Active internet connection
-- Sudo privileges
-- At least 10GB of free disk space
+<table>
+<tr>
+<td align="center">
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fedora/fedora-original.svg" width="60" height="60" alt="Fedora"/>
+<br><b>Fedora 42</b><br>
+KDE Plasma + Wayland
+</td>
+<td align="center">
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ubuntu/ubuntu-plain.svg" width="60" height="60" alt="Ubuntu"/>
+<br><b>Ubuntu 24.04 LTS</b><br>
+GNOME + Wayland
+</td>
+<td align="center">
+<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="60" height="60" alt="Windows"/>
+<br><b>Windows 11</b><br>
+PowerShell
+</td>
+</tr>
+</table>
 
-#### Ubuntu 24.04 LTS GNOME Wayland (`setup-ubuntu-24.04.sh`)
+## ✨ Features
 
-Complete installation and configuration script for a modern development environment on Ubuntu 24.04 LTS GNOME with Wayland.
+<div align="center">
 
-**Features:**
+| 🛠️ **Development Tools** | 🚀 **Modern CLI** | 🐚 **Shell & Terminal** | 📦 **Containers** |
+|:---:|:---:|:---:|:---:|
+| Python, Rust, Go, C++ | ripgrep, bat, eza, fd | ZSH + Oh My ZSH | Docker + Podman |
+| Poetry, Cargo, pyenv | bottom, delta, zoxide | Starship Prompt | Compose Support |
+| Build Tools & Debuggers | fzf, jq, hyperfine | Nerd Fonts | Registry Config |
 
-- System update and NVIDIA driver installation
-- ZSH with Oh My ZSH and essential plugins
-- Starship terminal prompt with custom configuration
-- Python development tools (pyenv, Poetry, uv)
-- Rust development environment (rustup, cargo tools)
-- Go development environment
-- C++ build tools and development environment
-- Modern CLI tools (ripgrep, bat, fd, eza, zoxide, etc.)
-- Container tools (Docker, Podman)
-- Nerd Fonts (FiraCode, JetBrains Mono)
-- GitHub CLI
-- Comprehensive aliases and configurations
+</div>
 
-**Prerequisites:**
+## �️ Available Scripts
 
-- Fresh installation of Ubuntu 24.04 LTS GNOME (Wayland session)
-- Active internet connection
-- Sudo privileges
-- At least 10GB of free disk space
+### 🐧 Fedora 42 KDE Plasma (`setup-fedora-42.sh`)
 
-### 🪟 Windows Development Environment Setup
+```bash
+# Optimized for Fedora 42 KDE Plasma + Wayland
+./setup-fedora-42.sh
+```
 
-#### Windows PowerShell (`setup-windows.ps1`)
+**🎯 Target Environment:** Fresh Fedora 42 KDE Plasma (Wayland)  
+**📦 Package Manager:** DNF  
+**🔧 Desktop:** KDE Plasma with Wayland session  
 
-PowerShell script for setting up a development environment on Windows.
+**📋 Installation Includes:**
 
-## Usage
+- 🔄 System updates and NVIDIA drivers
+- 🐚 ZSH + Oh My ZSH + premium plugins
+- ⭐ Starship prompt with custom theme
+- 🐍 Python ecosystem (pyenv, Poetry, uv)
+- 🦀 Rust toolchain (rustup, cargo, clippy)
+- 🐹 Go development environment
+- 🔨 C++ build tools and debuggers
+- 🚀 Modern CLI toolkit (50+ tools)
+- 📦 Container platforms (Docker + Podman)
+- 🔤 Nerd Fonts (FiraCode, JetBrains Mono)
+- 🐙 GitHub CLI with auth setup
 
-### Linux Scripts (Fedora/Ubuntu)
+### 🟠 Ubuntu 24.04 LTS GNOME (`setup-ubuntu-24.04.sh`)
 
-1. Clone this repository:
+```bash
+# Optimized for Ubuntu 24.04 LTS GNOME + Wayland
+./setup-ubuntu-24.04.sh
+```
 
-   ```bash
-   git clone https://github.com/yourusername/os-setup-scripts.git
-   cd os-setup-scripts
-   ```
+**🎯 Target Environment:** Fresh Ubuntu 24.04 LTS GNOME (Wayland)  
+**📦 Package Manager:** APT  
+**🔧 Desktop:** GNOME with Wayland session  
 
-2. Make the script executable:
+**📋 Installation Includes:**
 
-   ```bash
-   chmod +x setup-fedora-42.sh
-   # or
-   chmod +x setup-ubuntu-24.04.sh
-   ```
+- 🔄 System updates and NVIDIA drivers
+- 🐚 ZSH + Oh My ZSH + premium plugins
+- ⭐ Starship prompt with Ubuntu theme
+- 🐍 Python ecosystem (pyenv, Poetry, uv)
+- 🦀 Rust toolchain (rustup, cargo, clippy)
+- 🐹 Go development environment
+- 🔨 C++ build tools and debuggers
+- 🚀 Modern CLI toolkit (50+ tools)
+- 📦 Container platforms (Docker + Podman)
+- 🔤 Nerd Fonts (FiraCode, JetBrains Mono)
+- 🐙 GitHub CLI with auth setup
 
-3. Run the script:
+### 🪟 Windows 11 PowerShell (`setup-windows.ps1`)
 
-   ```bash
-   ./setup-fedora-42.sh
-   # or
-   ./setup-ubuntu-24.04.sh
-   ```
+```powershell
+# Windows development environment setup
+.\setup-windows.ps1
+```
 
-### Windows Script
+**🎯 Target Environment:** Windows 11  
+**📦 Package Manager:** Chocolatey + Winget  
+**🔧 Shell:** PowerShell 7+  
 
-1. Open PowerShell as Administrator
+**📋 Features:** *(Coming Soon)*
 
-2. Set execution policy (if needed):
+- Package management automation
+- Development tools installation
+- Windows Terminal configuration
+- WSL2 setup and optimization
 
-   ```powershell
-   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-   ```
+## 🚀 Quick Start
 
-3. Run the script:
+### 📋 Prerequisites
 
-   ```powershell
-   .\setup-windows.ps1
-   ```
+**All Platforms:**
 
-## What Gets Installed
+- ✅ Active internet connection
+- ✅ Administrator/sudo privileges
+- ✅ 10GB+ free disk space
+- ✅ Fresh OS installation (recommended)
 
-### Development Tools
+### ⚡ Installation
 
-- **Languages**: Python (latest via pyenv), Rust (via rustup), Go
-- **Package Managers**: Poetry (Python), Cargo (Rust), npm/yarn (Node.js)
-- **Version Managers**: pyenv (Python), rustup (Rust)
-- **Build Tools**: GCC, Clang, CMake, Make
+**Linux (Fedora/Ubuntu):**
 
-### Modern CLI Tools
+```bash
+# 1️⃣ Clone the repository
+git clone https://github.com/khiladisngh/os-setup-scripts.git
+cd os-setup-scripts
 
-- **File Operations**: eza (better ls), fd (better find), ripgrep (better grep)
-- **System Monitoring**: htop, bottom (btm), procs (better ps)
-- **Text Processing**: bat (better cat), sd (better sed), jq (JSON processor)
-- **Navigation**: zoxide (smarter cd), fzf (fuzzy finder)
-- **Git**: git-delta (better git diff), GitHub CLI
-- **Networking**: gping (better ping)
-- **Performance**: hyperfine (benchmarking), du-dust (better du)
+# 2️⃣ Make executable
+chmod +x setup-fedora-42.sh setup-ubuntu-24.04.sh
 
-### Terminal & Shell
+# 3️⃣ Run your platform script
+./setup-fedora-42.sh     # For Fedora 42
+./setup-ubuntu-24.04.sh  # For Ubuntu 24.04
+```
 
-- **Shell**: ZSH with Oh My ZSH framework
-- **Prompt**: Starship cross-shell prompt
-- **Plugins**: autosuggestions, syntax highlighting, history search
-- **Fonts**: Nerd Fonts (FiraCode, JetBrains Mono)
+**Windows:**
 
-### Container & Virtualization
+```powershell
+# 1️⃣ Open PowerShell as Administrator
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 
-- **Docker**: Container platform with compose
-- **Podman**: Daemonless container engine (Linux)
+# 2️⃣ Clone and run
+git clone https://github.com/khiladisngh/os-setup-scripts.git
+cd os-setup-scripts
+.\setup-windows.ps1
+```
 
-## Configuration Files
+## 🛠️ Development Stack
 
-The scripts create and configure several dotfiles:
+### 🌟 Programming Languages & Runtimes
 
-- `~/.zshrc` - ZSH configuration with plugins and settings
-- `~/.config/starship.toml` - Starship prompt configuration
-- `~/.aliases` - Comprehensive command aliases
-- Backup directory: `~/.config_backup_YYYYMMDD_HHMMSS`
+| Language | Version Manager | Package Manager | Tools |
+|:--------:|:---------------:|:---------------:|:-----:|
+| **🐍 Python** | pyenv | Poetry, uv, pip | Black, pytest, mypy |
+| **🦀 Rust** | rustup | Cargo | rustfmt, clippy, rust-analyzer |
+| **🐹 Go** | System/Manual | go mod | gofmt, golint, delve |
+| **⚡ C++** | System | cmake, make | GCC, Clang, GDB, Valgrind |
 
-## Post-Installation
+### 🚀 Modern CLI Toolkit
 
-After running the script:
+<details>
+<summary><b>📂 File & Navigation Tools</b></summary>
 
-1. **Restart your system** to ensure all changes take effect
-2. **Log out and log back in** for shell changes and group permissions
-3. **Open a new terminal** and run `source ~/.zshrc`
-4. **Configure your terminal font** to use a Nerd Font
-5. **Authenticate with GitHub**: `gh auth login`
+- **`eza`** → Enhanced `ls` with icons and git integration
+- **`fd`** → Fast and user-friendly `find` replacement
+- **`ripgrep`** → Ultra-fast text search tool
+- **`bat`** → Cat with syntax highlighting and git integration
+- **`zoxide`** → Smarter `cd` command with frecency algorithm
+- **`fzf`** → Fuzzy finder for files, commands, and history
 
-## Logging
+</details>
 
-Each script creates a detailed log file:
+<details>
+<summary><b>⚡ System & Performance Tools</b></summary>
 
-- Fedora: `fedora_setup_YYYYMMDD_HHMMSS.log`
-- Ubuntu: `ubuntu_setup_YYYYMMDD_HHMMSS.log`
-- Windows: `windows_setup_YYYYMMDD_HHMMSS.log`
+- **`bottom (btm)`** → Cross-platform system monitor
+- **`procs`** → Modern `ps` replacement
+- **`du-dust`** → Intuitive disk usage analyzer
+- **`hyperfine`** → Command-line benchmarking tool
+- **`gping`** → Ping with graph visualization
+- **`duf`** → Better `df` with colored output
 
-## Troubleshooting
+</details>
 
-### Common Issues
+<details>
+<summary><b>🔧 Development Tools</b></summary>
 
-1. **Permission Denied**: Ensure the script is executable (`chmod +x script.sh`)
-2. **Network Issues**: Check internet connection for package downloads
-3. **NVIDIA Drivers**: Reboot required after NVIDIA driver installation
-4. **Shell Changes**: Log out/in required for ZSH to become default
+- **`git-delta`** → Beautiful git diffs with syntax highlighting
+- **`gh`** → Official GitHub CLI
+- **`jq`** → JSON processor and formatter
+- **`sd`** → Intuitive find & replace CLI
+- **`hexyl`** → Command-line hex viewer
+- **`tealdeer (tldr)`** → Simplified man pages
 
-### Getting Help
+</details>
 
-- Check the log file for detailed error messages
-- Ensure all prerequisites are met
-- Run with verbose output for debugging
+## 📁 Project Structure & Configuration
 
-## Contributing
+```text
+os-setup-scripts/
+├── 🐧 setup-fedora-42.sh      # Fedora 42 KDE setup script
+├── 🟠 setup-ubuntu-24.04.sh   # Ubuntu 24.04 LTS setup script
+├── 🪟 setup-windows.ps1       # Windows 11 setup script
+├── 📖 README.md               # This file
+├── 📋 SETUP_SUMMARY.md        # Installation summary
+└── 📝 logs/                   # Generated log files
+    ├── fedora_setup_YYYYMMDD_HHMMSS.log
+    ├── ubuntu_setup_YYYYMMDD_HHMMSS.log
+    └── windows_setup_YYYYMMDD_HHMMSS.log
+```
 
-Feel free to contribute improvements, bug fixes, or additional OS support:
+### 🔧 Configuration Files Created
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+| File | Purpose | Backup Location |
+|:-----|:--------|:----------------|
+| `~/.zshrc` | ZSH configuration with plugins | `~/.config_backup_*/` |
+| `~/.config/starship.toml` | Starship prompt theme | `~/.config_backup_*/` |
+| `~/.aliases` | 100+ useful command aliases | `~/.config_backup_*/` |
+| `~/.gitconfig` | Git configuration with delta | `~/.config_backup_*/` |
 
-## License
+## 🎯 Post-Installation Checklist
 
-MIT License - see LICENSE file for details.
+### ✅ Essential Steps
+
+1. **🔄 System Restart** - Required for kernel modules and drivers
+2. **🚪 Re-login** - Activates shell changes and group permissions
+3. **🔤 Font Configuration** - Set terminal to use Nerd Font
+4. **🐙 GitHub Authentication** - Run `gh auth login`
+5. **⚡ Source Configuration** - Run `source ~/.zshrc`
+
+### 🛠️ Optional Configuration
+
+- **Terminal Theme** - Configure your terminal colors
+- **IDE Setup** - Install VS Code, JetBrains IDEs, or Neovim
+- **SSH Keys** - Generate and add SSH keys to GitHub/GitLab
+- **Custom Aliases** - Edit `~/.aliases` for personal shortcuts
+
+## 📊 Logging & Debugging
+
+Each script generates comprehensive logs with:
+
+- ⏰ **Timestamps** for every operation
+- 🎯 **Color-coded** messages (INFO, SUCCESS, WARNING, ERROR)
+- 📈 **Progress tracking** with visual progress bars
+- 🔄 **Error handling** with detailed error messages
+- 📁 **Backup tracking** of modified configuration files
+
+**Log Locations:**
+
+```bash
+# View recent logs
+ls -la *_setup_*.log
+
+# Follow installation in real-time
+tail -f fedora_setup_$(date +%Y%m%d)*.log
+```
+
+## 🔧 Troubleshooting
+
+### 🚨 Common Issues
+
+| Issue | Solution |
+|:------|:---------|
+| **Permission Denied** | Ensure script is executable: `chmod +x script.sh` |
+| **Network Timeout** | Check internet connection and retry |
+| **NVIDIA Installation** | Reboot required after driver installation |
+| **Docker Permission** | Log out/in to apply group changes |
+| **ZSH Not Default** | Log out/in to activate shell change |
+| **Missing Fonts** | Run `fc-cache -fv` to refresh font cache |
+
+### 🔍 Getting Support
+
+1. **📝 Check logs** - Look for ERROR messages in log files
+2. **🐛 Enable debug** - Run with `bash -x script.sh` for verbose output
+3. **🌐 Search issues** - Check GitHub issues for similar problems
+4. **📬 Report bugs** - Create detailed issue with log excerpts
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+### 🛠️ Development Setup
+
+```bash
+# Fork and clone your fork
+git clone https://github.com/YOUR_USERNAME/os-setup-scripts.git
+cd os-setup-scripts
+
+# Create feature branch
+git checkout -b feature/amazing-improvement
+
+# Make your changes and test thoroughly
+./setup-ubuntu-24.04.sh  # Test your changes
+
+# Commit and push
+git commit -m "feat: add amazing improvement"
+git push origin feature/amazing-improvement
+
+# Create pull request
+```
+
+### 📋 Contribution Guidelines
+
+- **🧪 Test thoroughly** on fresh OS installations
+- **📝 Update documentation** for new features
+- **🔍 Follow shell scripting best practices**
+- **📊 Add appropriate logging and error handling**
+- **🎨 Maintain consistent code style**
+
+## 📜 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+**⭐ Star this repository if it helped you!**
+
+[![GitHub stars](https://img.shields.io/github/stars/khiladisngh/os-setup-scripts?style=social)](https://github.com/khiladisngh/os-setup-scripts/stargazers)
+
+Made with ❤️ by [Gishant](https://github.com/khiladisngh)
+
+</div>

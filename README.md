@@ -1,7 +1,5 @@
 # 🚀 OS Setup Scripts
 
-<div align="center">
-
 ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
 ![Fedora](https://img.shields.io/badge/Fedora-294172?style=for-the-badge&logo=fedora&logoColor=white)
@@ -15,8 +13,6 @@
 [![GitHub forks](https://img.shields.io/github/forks/khiladisngh/os-setup-scripts?style=for-the-badge)](https://github.com/khiladisngh/os-setup-scripts/network)
 [![GitHub issues](https://img.shields.io/github/issues/khiladisngh/os-setup-scripts?style=for-the-badge)](https://github.com/khiladisngh/os-setup-scripts/issues)
 
-</div>
-
 > 🎯 **Automated development environment setup scripts for multiple operating systems**
 
 A collection of comprehensive, production-ready setup scripts for configuring modern development environments across different operating systems. Each script is designed to transform a fresh OS installation into a fully configured development powerhouse.
@@ -24,45 +20,41 @@ A collection of comprehensive, production-ready setup scripts for configuring mo
 ## 📊 Platform Support
 
 <table>
-<tr>
-<td align="center">
-<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fedora/fedora-original.svg" width="60" height="60" alt="Fedora"/>
-<br><b>Fedora 42</b><br>
-KDE Plasma + Wayland<br>
-<em>+ WSL Support</em>
-</td>
-<td align="center">
-<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ubuntu/ubuntu-plain.svg" width="60" height="60" alt="Ubuntu"/>
-<br><b>Ubuntu 24.04 LTS</b><br>
-GNOME + Wayland<br>
-<em>+ WSL Support</em>
-</td>
-<td align="center">
-<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="60" height="60" alt="Windows"/>
-<br><b>Windows 11</b><br>
-PowerShell<br>
-<em>+ WSL2 Setup</em>
-</td>
-<td align="center">
-<img src="https://github.com/microsoft/WSL/raw/master/images/wsl-icon-256.png" width="60" height="60" alt="WSL"/>
-<br><b>WSL Universal</b><br>
-Multi-Distro Support<br>
-<em>Ubuntu/Fedora/Debian</em>
-</td>
-</tr>
+    <tr>
+        <td align="center">
+            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fedora/fedora-original.svg" width="60" height="60" alt="Fedora"/>
+            <br><b>Fedora 42</b><br>
+            KDE Plasma + Wayland<br>
+            <em>+ WSL Support</em>
+        </td>
+        <td align="center">
+            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ubuntu/ubuntu-plain.svg" width="60" height="60" alt="Ubuntu"/>
+            <br><b>Ubuntu 24.04 LTS</b><br>
+            GNOME + Wayland<br>
+            <em>+ WSL Support</em>
+        </td>
+        <td align="center">
+            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="60" height="60" alt="Windows"/>
+            <br><b>Windows 11</b><br>
+            PowerShell<br>
+            <em>+ WSL2 Setup</em>
+        </td>
+        <td align="center">
+            <img src="https://img.utdstc.com/icon/06f/a39/06fa39301c97531152761a4d780a1fedcdaec6b55ff08f5327eba2ff19cdd9bb:200" width="60" height="60" alt="WSL"/>
+            <br><b>WSL Universal</b><br>
+            Multi-Distro Support<br>
+            <em>Ubuntu/Fedora/Debian</em>
+        </td>
+    </tr>
 </table>
 
 ## ✨ Features
 
-<div align="center">
-
-| 🛠️ **Development Tools** | 🚀 **Modern CLI** | 🐚 **Shell & Terminal** | 📦 **Containers** | 🪟 **WSL Support** |
-|:---:|:---:|:---:|:---:|:---:|
-| Python, Rust, Go, C++ | ripgrep, bat, eza, fd | ZSH + Oh My ZSH | Docker + Podman | Auto-Detection |
-| Poetry, Cargo, pyenv | bottom, delta, zoxide | Starship Prompt | Compose Support | Windows Integration |
-| Build Tools & Debuggers | fzf, jq, hyperfine | Nerd Fonts | Registry Config | X11 Forwarding |
-
-</div>
+| 🛠️ **Development Tools** |   🚀 **Modern CLI**   | 🐚 **Shell & Terminal** | 📦 **Containers** | 🪟 **WSL Support**  |
+| :----------------------: | :-------------------: | :---------------------: | :---------------: | :-----------------: |
+|  Python, Rust, Go, C++   | ripgrep, bat, eza, fd |     ZSH + Oh My ZSH     |  Docker + Podman  |   Auto-Detection    |
+|   Poetry, Cargo, pyenv   | bottom, delta, zoxide |     Starship Prompt     |  Compose Support  | Windows Integration |
+| Build Tools & Debuggers  |  fzf, jq, hyperfine   |       Nerd Fonts        |  Registry Config  |   X11 Forwarding    |
 
 ## �️ Available Scripts
 
@@ -75,7 +67,7 @@ Multi-Distro Support<br>
 
 **🎯 Target Environment:** Fresh Fedora 42 KDE Plasma (Wayland)  
 **📦 Package Manager:** DNF  
-**🔧 Desktop:** KDE Plasma with Wayland session  
+**🔧 Desktop:** KDE Plasma with Wayland session
 
 **📋 Installation Includes:**
 
@@ -100,7 +92,7 @@ Multi-Distro Support<br>
 
 **🎯 Target Environment:** Fresh Ubuntu 24.04 LTS GNOME (Wayland)  
 **📦 Package Manager:** APT  
-**🔧 Desktop:** GNOME with Wayland session  
+**🔧 Desktop:** GNOME with Wayland session
 
 **📋 Installation Includes:**
 
@@ -125,9 +117,9 @@ Multi-Distro Support<br>
 
 **🎯 Target Environment:** Windows 11  
 **📦 Package Manager:** Chocolatey + Winget  
-**🔧 Shell:** PowerShell 7+  
+**🔧 Shell:** PowerShell 7+
 
-**📋 Features:** *(Coming Soon)*
+**📋 Features:** _(Coming Soon)_
 
 - Package management automation
 - Development tools installation
@@ -143,7 +135,7 @@ Multi-Distro Support<br>
 
 **🎯 Target Environment:** WSL (Windows Subsystem for Linux)  
 **📦 Package Manager:** Auto-detected (APT/DNF)  
-**🔧 Distributions:** Ubuntu, Fedora, Debian  
+**🔧 Distributions:** Ubuntu, Fedora, Debian
 
 **📋 Installation Includes:**
 
@@ -235,17 +227,16 @@ chmod +x setup-wsl.sh
 
 ### 🌟 Programming Languages & Runtimes
 
-| Language | Version Manager | Package Manager | Tools |
-|:--------:|:---------------:|:---------------:|:-----:|
-| **🐍 Python** | pyenv | Poetry, uv, pip | Black, pytest, mypy |
-| **🦀 Rust** | rustup | Cargo | rustfmt, clippy, rust-analyzer |
-| **🐹 Go** | System/Manual | go mod | gofmt, golint, delve |
-| **⚡ C++** | System | cmake, make | GCC, Clang, GDB, Valgrind |
+|   Language    | Version Manager | Package Manager |             Tools              |
+| :-----------: | :-------------: | :-------------: | :----------------------------: |
+| **🐍 Python** |      pyenv      | Poetry, uv, pip |      Black, pytest, mypy       |
+|  **🦀 Rust**  |     rustup      |      Cargo      | rustfmt, clippy, rust-analyzer |
+|   **🐹 Go**   |  System/Manual  |     go mod      |      gofmt, golint, delve      |
+|  **⚡ C++**   |     System      |   cmake, make   |   GCC, Clang, GDB, Valgrind    |
 
 ### 🚀 Modern CLI Toolkit
 
-<details>
-<summary><b>📂 File & Navigation Tools</b></summary>
+#### 📂 File & Navigation Tools
 
 - **`eza`** → Enhanced `ls` with icons and git integration
 - **`fd`** → Fast and user-friendly `find` replacement
@@ -254,10 +245,7 @@ chmod +x setup-wsl.sh
 - **`zoxide`** → Smarter `cd` command with frecency algorithm
 - **`fzf`** → Fuzzy finder for files, commands, and history
 
-</details>
-
-<details>
-<summary><b>⚡ System & Performance Tools</b></summary>
+#### ⚡ System & Performance Tools
 
 - **`bottom (btm)`** → Cross-platform system monitor
 - **`procs`** → Modern `ps` replacement
@@ -266,10 +254,7 @@ chmod +x setup-wsl.sh
 - **`gping`** → Ping with graph visualization
 - **`duf`** → Better `df` with colored output
 
-</details>
-
-<details>
-<summary><b>🔧 Development Tools</b></summary>
+#### 🔧 Development Tools
 
 - **`git-delta`** → Beautiful git diffs with syntax highlighting
 - **`gh`** → Official GitHub CLI
@@ -277,8 +262,6 @@ chmod +x setup-wsl.sh
 - **`sd`** → Intuitive find & replace CLI
 - **`hexyl`** → Command-line hex viewer
 - **`tealdeer (tldr)`** → Simplified man pages
-
-</details>
 
 ## 📁 Project Structure & Configuration
 
@@ -297,12 +280,12 @@ os-setup-scripts/
 
 ### 🔧 Configuration Files Created
 
-| File | Purpose | Backup Location |
-|:-----|:--------|:----------------|
-| `~/.zshrc` | ZSH configuration with plugins | `~/.config_backup_*/` |
-| `~/.config/starship.toml` | Starship prompt theme | `~/.config_backup_*/` |
-| `~/.aliases` | 100+ useful command aliases | `~/.config_backup_*/` |
-| `~/.gitconfig` | Git configuration with delta | `~/.config_backup_*/` |
+| File                      | Purpose                        | Backup Location       |
+| :------------------------ | :----------------------------- | :-------------------- |
+| `~/.zshrc`                | ZSH configuration with plugins | `~/.config_backup_*/` |
+| `~/.config/starship.toml` | Starship prompt theme          | `~/.config_backup_*/` |
+| `~/.aliases`              | 100+ useful command aliases    | `~/.config_backup_*/` |
+| `~/.gitconfig`            | Git configuration with delta   | `~/.config_backup_*/` |
 
 ## 🎯 Post-Installation Checklist
 
@@ -345,14 +328,14 @@ tail -f fedora_setup_$(date +%Y%m%d)*.log
 
 ### 🚨 Common Issues
 
-| Issue | Solution |
-|:------|:---------|
-| **Permission Denied** | Ensure script is executable: `chmod +x script.sh` |
-| **Network Timeout** | Check internet connection and retry |
-| **NVIDIA Installation** | Reboot required after driver installation |
-| **Docker Permission** | Log out/in to apply group changes |
-| **ZSH Not Default** | Log out/in to activate shell change |
-| **Missing Fonts** | Run `fc-cache -fv` to refresh font cache |
+| Issue                   | Solution                                          |
+| :---------------------- | :------------------------------------------------ |
+| **Permission Denied**   | Ensure script is executable: `chmod +x script.sh` |
+| **Network Timeout**     | Check internet connection and retry               |
+| **NVIDIA Installation** | Reboot required after driver installation         |
+| **Docker Permission**   | Log out/in to apply group changes                 |
+| **ZSH Not Default**     | Log out/in to activate shell change               |
+| **Missing Fonts**       | Run `fc-cache -fv` to refresh font cache          |
 
 ### 🔍 Getting Support
 
@@ -399,12 +382,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-<div align="center">
-
 **⭐ Star this repository if it helped you!**
 
 [![GitHub stars](https://img.shields.io/github/stars/khiladisngh/os-setup-scripts?style=social)](https://github.com/khiladisngh/os-setup-scripts/stargazers)
 
 Made with ❤️ by [Gishant](https://github.com/khiladisngh)
-
-</div>

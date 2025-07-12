@@ -6,9 +6,10 @@
 #
 # Description: Complete installation and configuration script for a modern
 #              development environment on Ubuntu 24.04 LTS GNOME with Wayland.
+#              Also supports WSL (Windows Subsystem for Linux) environments.
 #
 # Author:      Gishant
-# Version:     1.0
+# Version:     1.1
 # Date:        July 2025
 #
 # Features:
@@ -19,14 +20,21 @@
 # - Modular design with categorized installations.
 # - Detailed documentation and comments.
 # - Creates a backup of existing configuration files.
+# - WSL environment detection and optimization.
 #
 # Usage: ./setup-ubuntu-24.04.sh
 #
 # Prerequisites:
-# - A fresh installation of Ubuntu 24.04 LTS GNOME (Wayland session).
+# - A fresh installation of Ubuntu 24.04 LTS GNOME (Wayland session) OR Ubuntu on WSL.
 # - An active internet connection.
 # - Sudo privileges for the current user.
 # - At least 10GB of free disk space is recommended.
+#
+# WSL Notes:
+# - Automatically detects WSL environment and adjusts configurations.
+# - Skips desktop environment and GPU driver installations.
+# - Configures container tools for WSL compatibility.
+# - Sets up X11 forwarding for GUI applications.
 #
 # ============================================================================
 
@@ -55,6 +63,61 @@ CURRENT_STEP=0
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly LOG_FILE="${SCRIPT_DIR}/ubuntu_setup_$(date +%Y%m%d_%H%M%S).log"
 readonly BACKUP_DIR="${HOME}/.config_backup_$(date +%Y%m%d_%H%M%S)"
+
+# WSL Detection
+IS_WSL=false
+
+# ============================================================================
+# WSL DETECTION FUNCTION
+# ============================================================================
+
+# Check if running in WSL environment
+detect_wsl() {
+    if [[ -f "/proc/version" ]] && grep -qi "microsoft\|wsl" /proc/version; then
+        IS_WSL=true
+        return 0
+    elif [[ -f "/proc/sys/kernel/osrelease" ]] && grep -qi "microsoft\|wsl" /proc/sys/kernel/osrelease; then
+        IS_WSL=true
+        return 0
+    elif [[ "${WSL_DISTRO_NAME:-}" != "" ]]; then
+        IS_WSL=true
+        return 0
+    else
+        IS_WSL=false
+        return 1
+    fi
+}
+
+# WSL-specific configuration function
+configure_wsl_environment() {
+    if [[ "$IS_WSL" == "true" ]]; then
+        log "INFO" "Configuring WSL-specific environment settings..."
+        
+        # Set DISPLAY for X11 forwarding (WSL2)
+        if [[ ! -f "$HOME/.wslconfig" ]]; then
+            log "INFO" "Creating WSL display configuration..."
+            # Get Windows host IP for WSL2
+            local windows_host
+            windows_host=$(ip route show | grep -i default | awk '{ print $3}')
+            export DISPLAY="${windows_host}:0.0"
+            
+            # Add to shell configuration
+            if [[ -f "$HOME/.zshrc" ]]; then
+                echo "# WSL Display Configuration" >> "$HOME/.zshrc"
+                echo "export DISPLAY=\$(ip route show | grep -i default | awk '{ print \$3}'):0.0" >> "$HOME/.zshrc"
+            fi
+        fi
+        
+        # Configure WSL-specific Git settings
+        if command_exists git; then
+            log "INFO" "Configuring Git for WSL..."
+            git config --global core.autocrlf input
+            git config --global core.filemode false
+        fi
+        
+        log "INFO" "WSL environment configuration completed."
+    fi
+}
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -179,6 +242,13 @@ backup_file() {
 check_requirements() {
     log "HEADER" "STEP 1/$TOTAL_STEPS: CHECKING SYSTEM REQUIREMENTS"
 
+    # Detect WSL environment
+    detect_wsl
+    if [[ "$IS_WSL" == "true" ]]; then
+        log "INFO" "WSL environment detected. Adjusting configuration for WSL compatibility."
+        log "INFO" "WSL Distro: ${WSL_DISTRO_NAME:-Unknown}"
+    fi
+
     # Check if running on Ubuntu
     if ! grep -q -i "ubuntu" /etc/os-release; then
         log "ERROR" "This script is designed for Ubuntu Linux."
@@ -195,13 +265,17 @@ check_requirements() {
         fi
     fi
 
-    # Check for GNOME and Wayland
-    if [[ "${XDG_CURRENT_DESKTOP:-}" != "ubuntu:GNOME" ]] || [[ "${XDG_SESSION_TYPE:-}" != "wayland" ]]; then
-        log "WARNING" "This script is optimized for GNOME on Wayland."
-        log "WARNING" "Current Desktop: ${XDG_CURRENT_DESKTOP:-Not Set}, Session: ${XDG_SESSION_TYPE:-Not Set}"
-        if ! confirm "Some settings might not apply correctly. Continue?"; then
-            exit 1
+    # Check for GNOME and Wayland (skip in WSL)
+    if [[ "$IS_WSL" == "false" ]]; then
+        if [[ "${XDG_CURRENT_DESKTOP:-}" != "ubuntu:GNOME" ]] || [[ "${XDG_SESSION_TYPE:-}" != "wayland" ]]; then
+            log "WARNING" "This script is optimized for GNOME on Wayland."
+            log "WARNING" "Current Desktop: ${XDG_CURRENT_DESKTOP:-Not Set}, Session: ${XDG_SESSION_TYPE:-Not Set}"
+            if ! confirm "Some settings might not apply correctly. Continue?"; then
+                exit 1
+            fi
         fi
+    else
+        log "INFO" "Skipping desktop environment checks in WSL."
     fi
 
     # Check sudo privileges
@@ -219,6 +293,10 @@ check_requirements() {
     fi
 
     log "SUCCESS" "System requirements check passed."
+    
+    # Configure WSL environment if detected
+    configure_wsl_environment
+    
     next_step
 }
 
@@ -238,6 +316,13 @@ update_system() {
 # 3. NVIDIA Graphics Driver
 install_nvidia_driver() {
     log "HEADER" "STEP 3/$TOTAL_STEPS: NVIDIA GRAPHICS DRIVER"
+
+    # Skip NVIDIA drivers in WSL
+    if [[ "$IS_WSL" == "true" ]]; then
+        log "INFO" "Skipping NVIDIA driver installation in WSL environment."
+        next_step
+        return
+    fi
 
     if ! lspci | grep -iq 'VGA.*NVIDIA'; then
         log "INFO" "No NVIDIA GPU detected. Skipping this step."
@@ -688,32 +773,66 @@ install_container_tools() {
         return
     fi
 
-    log "INFO" "Installing Docker..."
-    # Remove any old versions
-    sudo apt remove -y docker docker-engine docker.io containerd runc || true
-    
-    # Install Docker's GPG key and repository
-    sudo apt update
-    sudo apt install -y ca-certificates curl gnupg lsb-release
-    sudo mkdir -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    
-    # Install Docker packages
-    sudo apt update
-    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    # WSL-specific container setup
+    if [[ "$IS_WSL" == "true" ]]; then
+        log "INFO" "WSL detected. Installing container tools compatible with WSL..."
+        log "INFO" "Note: For best WSL experience, consider using Docker Desktop for Windows."
+        
+        # Install Docker (without systemd service management)
+        log "INFO" "Installing Docker (without systemd service)..."
+        # Remove any old versions
+        sudo apt remove -y docker docker-engine docker.io containerd runc || true
+        
+        # Install Docker's GPG key and repository
+        sudo apt update
+        sudo apt install -y ca-certificates curl gnupg lsb-release
+        sudo mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        
+        # Install Docker packages
+        sudo apt update
+        sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-    log "INFO" "Starting and enabling Docker service..."
-    sudo systemctl start docker
-    sudo systemctl enable docker
+        log "INFO" "Installing Podman..."
+        sudo apt install -y podman
 
-    log "INFO" "Adding current user ($USER) to the 'docker' group..."
-    sudo usermod -aG docker "$USER"
+        log "INFO" "Adding current user ($USER) to the 'docker' group..."
+        sudo usermod -aG docker "$USER"
+        
+        log "WARNING" "In WSL, Docker daemon needs to be started manually or use Docker Desktop."
+        log "WARNING" "To start Docker: sudo dockerd &"
+        log "WARNING" "Or install Docker Desktop for Windows for seamless integration."
+        
+    else
+        # Regular Linux installation
+        log "INFO" "Installing Docker..."
+        # Remove any old versions
+        sudo apt remove -y docker docker-engine docker.io containerd runc || true
+        
+        # Install Docker's GPG key and repository
+        sudo apt update
+        sudo apt install -y ca-certificates curl gnupg lsb-release
+        sudo mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        
+        # Install Docker packages
+        sudo apt update
+        sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-    log "INFO" "Installing Podman..."
-    sudo apt install -y podman
+        log "INFO" "Starting and enabling Docker service..."
+        sudo systemctl start docker
+        sudo systemctl enable docker
 
-    log "WARNING" "You must log out and log back in for the Docker group changes to take effect."
+        log "INFO" "Adding current user ($USER) to the 'docker' group..."
+        sudo usermod -aG docker "$USER"
+
+        log "INFO" "Installing Podman..."
+        sudo apt install -y podman
+
+        log "WARNING" "You must log out and log back in for the Docker group changes to take effect."
+    fi
 
     log "SUCCESS" "Container tools installed successfully."
     next_step

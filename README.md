@@ -28,17 +28,26 @@ A collection of comprehensive, production-ready setup scripts for configuring mo
 <td align="center">
 <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fedora/fedora-original.svg" width="60" height="60" alt="Fedora"/>
 <br><b>Fedora 42</b><br>
-KDE Plasma + Wayland
+KDE Plasma + Wayland<br>
+<em>+ WSL Support</em>
 </td>
 <td align="center">
 <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ubuntu/ubuntu-plain.svg" width="60" height="60" alt="Ubuntu"/>
 <br><b>Ubuntu 24.04 LTS</b><br>
-GNOME + Wayland
+GNOME + Wayland<br>
+<em>+ WSL Support</em>
 </td>
 <td align="center">
 <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/windows8/windows8-original.svg" width="60" height="60" alt="Windows"/>
 <br><b>Windows 11</b><br>
-PowerShell
+PowerShell<br>
+<em>+ WSL2 Setup</em>
+</td>
+<td align="center">
+<img src="https://github.com/microsoft/WSL/raw/master/images/wsl-icon-256.png" width="60" height="60" alt="WSL"/>
+<br><b>WSL Universal</b><br>
+Multi-Distro Support<br>
+<em>Ubuntu/Fedora/Debian</em>
 </td>
 </tr>
 </table>
@@ -47,11 +56,11 @@ PowerShell
 
 <div align="center">
 
-| 🛠️ **Development Tools** | 🚀 **Modern CLI** | 🐚 **Shell & Terminal** | 📦 **Containers** |
-|:---:|:---:|:---:|:---:|
-| Python, Rust, Go, C++ | ripgrep, bat, eza, fd | ZSH + Oh My ZSH | Docker + Podman |
-| Poetry, Cargo, pyenv | bottom, delta, zoxide | Starship Prompt | Compose Support |
-| Build Tools & Debuggers | fzf, jq, hyperfine | Nerd Fonts | Registry Config |
+| 🛠️ **Development Tools** | 🚀 **Modern CLI** | 🐚 **Shell & Terminal** | 📦 **Containers** | 🪟 **WSL Support** |
+|:---:|:---:|:---:|:---:|:---:|
+| Python, Rust, Go, C++ | ripgrep, bat, eza, fd | ZSH + Oh My ZSH | Docker + Podman | Auto-Detection |
+| Poetry, Cargo, pyenv | bottom, delta, zoxide | Starship Prompt | Compose Support | Windows Integration |
+| Build Tools & Debuggers | fzf, jq, hyperfine | Nerd Fonts | Registry Config | X11 Forwarding |
 
 </div>
 
@@ -125,6 +134,37 @@ PowerShell
 - Windows Terminal configuration
 - WSL2 setup and optimization
 
+### 🐧 WSL Universal (`setup-wsl.sh`)
+
+```bash
+# Universal WSL development environment setup
+./setup-wsl.sh
+```
+
+**🎯 Target Environment:** WSL (Windows Subsystem for Linux)  
+**📦 Package Manager:** Auto-detected (APT/DNF)  
+**🔧 Distributions:** Ubuntu, Fedora, Debian  
+
+**📋 Installation Includes:**
+
+- 🔍 Automatic distribution detection
+- 🔄 System updates for detected distro
+- 🌐 X11 forwarding configuration
+- 🐚 WSL-optimized shell configuration
+- 🐙 Git configuration for Windows interop
+- 📦 Container tools (WSL-compatible)
+- 🚀 Programming languages (Node.js, Python, Go, Rust)
+- 🔗 Windows integration (symlinks, aliases)
+- 📂 Convenient Windows directory access
+
+**🔧 WSL-Specific Features:**
+
+- Automatic WSL environment detection
+- Skip desktop environment configurations
+- Windows PATH integration
+- Docker Desktop compatibility
+- Cross-platform file access
+
 ## 🚀 Quick Start
 
 ### 📋 Prerequisites
@@ -146,11 +186,23 @@ git clone https://github.com/khiladisngh/os-setup-scripts.git
 cd os-setup-scripts
 
 # 2️⃣ Make executable
-chmod +x setup-fedora-42.sh setup-ubuntu-24.04.sh
+chmod +x setup-fedora-42.sh setup-ubuntu-24.04.sh setup-wsl.sh
 
 # 3️⃣ Run your platform script
 ./setup-fedora-42.sh     # For Fedora 42
 ./setup-ubuntu-24.04.sh  # For Ubuntu 24.04
+```
+
+**WSL (Any Distribution):**
+
+```bash
+# 1️⃣ Clone the repository
+git clone https://github.com/khiladisngh/os-setup-scripts.git
+cd os-setup-scripts
+
+# 2️⃣ Make executable and run universal WSL script
+chmod +x setup-wsl.sh
+./setup-wsl.sh  # Auto-detects Ubuntu/Fedora/Debian
 ```
 
 **Windows:**
@@ -163,6 +215,20 @@ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 git clone https://github.com/khiladisngh/os-setup-scripts.git
 cd os-setup-scripts
 .\setup-windows.ps1
+```
+
+**WSL:**
+
+```bash
+# 1️⃣ Clone the repository (from Windows)
+git clone https://github.com/khiladisngh/os-setup-scripts.git
+cd os-setup-scripts
+
+# 2️⃣ Make executable (if required)
+chmod +x setup-wsl.sh
+
+# 3️⃣ Run the WSL setup script
+./setup-wsl.sh
 ```
 
 ## 🛠️ Development Stack

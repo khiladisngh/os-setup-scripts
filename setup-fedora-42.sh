@@ -1149,49 +1149,134 @@ install_fonts() {
     log "INFO" "Creating fonts directory at $font_dir"
     mkdir -p "$font_dir"
 
-    # Check if FiraCode and JetBrainsMono Nerd Fonts are already installed
+    # Enhanced font checking with multiple patterns
     local firacode_installed=false
     local jetbrains_installed=false
     
-    if fc-list | grep -qi "FiraCode.*Nerd"; then
+    log "INFO" "Checking for existing font installations..."
+    
+    # Check for FiraCode Nerd Font with multiple patterns
+    if fc-list | grep -qi "FiraCode.*Nerd" || \
+       fc-list | grep -qi "FiraCode.*NF" || \
+       fc-list | grep -qi "FiraCodeNerdFont" || \
+       ls "$font_dir" | grep -qi "FiraCode.*Nerd" 2>/dev/null; then
         firacode_installed=true
-        log "INFO" "FiraCode Nerd Font is already installed"
+        track_skipped "FiraCode Nerd Font"
     fi
     
-    if fc-list | grep -qi "JetBrainsMono.*Nerd"; then
+    # Check for JetBrainsMono Nerd Font with multiple patterns
+    if fc-list | grep -qi "JetBrainsMono.*Nerd" || \
+       fc-list | grep -qi "JetBrainsMono.*NF" || \
+       fc-list | grep -qi "JetBrainsMonoNerdFont" || \
+       ls "$font_dir" | grep -qi "JetBrainsMono.*Nerd" 2>/dev/null; then
         jetbrains_installed=true
-        log "INFO" "JetBrainsMono Nerd Font is already installed"
+        track_skipped "JetBrainsMono Nerd Font"
     fi
 
+    # If both fonts are already installed, skip entirely
     if [[ "$firacode_installed" == "true" && "$jetbrains_installed" == "true" ]]; then
-        log "INFO" "Both FiraCode and JetBrainsMono Nerd Fonts are already installed. Skipping."
+        log "SUCCESS" "Both FiraCode and JetBrainsMono Nerd Fonts are already installed. Skipping."
+        track_skipped "Nerd Fonts Installation"
         next_step
         return
     fi
 
+    # Create temporary directory for downloads
     local tmp_dir
     tmp_dir=$(mktemp -d)
+    log "INFO" "Created temporary directory: $tmp_dir"
 
+    # Track what needs to be installed
+    local fonts_to_install=()
+    local installed_fonts=()
+    local failed_fonts=()
+
+    # Install FiraCode Nerd Font if not present
     if [[ "$firacode_installed" == "false" ]]; then
-        log "INFO" "Installing FiraCode Nerd Font..."
-        wget -q --show-progress -P "$tmp_dir" https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip
-        unzip -o "$tmp_dir/FiraCode.zip" -d "$font_dir"
+        fonts_to_install+=("FiraCode")
+        log "PROGRESS" "Downloading FiraCode Nerd Font..."
+        
+        if wget -q --show-progress -P "$tmp_dir" https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip; then
+            log "SUCCESS" "FiraCode Nerd Font downloaded successfully"
+            
+            log "INSTALL" "Extracting FiraCode Nerd Font..."
+            if unzip -o "$tmp_dir/FiraCode.zip" -d "$font_dir" >/dev/null 2>&1; then
+                log "SUCCESS" "FiraCode Nerd Font extracted successfully"
+                installed_fonts+=("FiraCode Nerd Font")
+                track_installed "FiraCode Nerd Font"
+            else
+                log "ERROR" "Failed to extract FiraCode Nerd Font"
+                failed_fonts+=("FiraCode Nerd Font")
+                track_failed "FiraCode Nerd Font"
+            fi
+            
+            # Clean up the specific zip file
+            log "INFO" "Removing FiraCode.zip..."
+            rm -f "$tmp_dir/FiraCode.zip"
+        else
+            log "ERROR" "Failed to download FiraCode Nerd Font"
+            failed_fonts+=("FiraCode Nerd Font")
+            track_failed "FiraCode Nerd Font"
+        fi
     fi
 
+    # Install JetBrainsMono Nerd Font if not present
     if [[ "$jetbrains_installed" == "false" ]]; then
-        log "INFO" "Installing JetBrainsMono Nerd Font..."
-        wget -q --show-progress -P "$tmp_dir" https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/JetBrainsMono.zip
-        unzip -o "$tmp_dir/JetBrainsMono.zip" -d "$font_dir"
+        fonts_to_install+=("JetBrainsMono")
+        log "PROGRESS" "Downloading JetBrainsMono Nerd Font..."
+        
+        if wget -q --show-progress -P "$tmp_dir" https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/JetBrainsMono.zip; then
+            log "SUCCESS" "JetBrainsMono Nerd Font downloaded successfully"
+            
+            log "INSTALL" "Extracting JetBrainsMono Nerd Font..."
+            if unzip -o "$tmp_dir/JetBrainsMono.zip" -d "$font_dir" >/dev/null 2>&1; then
+                log "SUCCESS" "JetBrainsMono Nerd Font extracted successfully"
+                installed_fonts+=("JetBrainsMono Nerd Font")
+                track_installed "JetBrainsMono Nerd Font"
+            else
+                log "ERROR" "Failed to extract JetBrainsMono Nerd Font"
+                failed_fonts+=("JetBrainsMono Nerd Font")
+                track_failed "JetBrainsMono Nerd Font"
+            fi
+            
+            # Clean up the specific zip file
+            log "INFO" "Removing JetBrainsMono.zip..."
+            rm -f "$tmp_dir/JetBrainsMono.zip"
+        else
+            log "ERROR" "Failed to download JetBrainsMono Nerd Font"
+            failed_fonts+=("JetBrainsMono Nerd Font")
+            track_failed "JetBrainsMono Nerd Font"
+        fi
     fi
 
-    log "INFO" "Cleaning up temporary files..."
+    # Final cleanup - remove temporary directory and any remaining files
+    log "INFO" "Cleaning up temporary files and directories..."
     rm -rf "$tmp_dir"
 
-    log "INFO" "Updating font cache..."
-    fc-cache -fv
+    # Update font cache only if fonts were installed
+    if [[ ${#installed_fonts[@]} -gt 0 ]]; then
+        log "PROGRESS" "Updating font cache..."
+        if fc-cache -fv >/dev/null 2>&1; then
+            log "SUCCESS" "Font cache updated successfully"
+            track_installed "Font Cache Update"
+        else
+            log "WARNING" "Font cache update failed, but fonts should still work"
+            track_failed "Font Cache Update"
+        fi
+    fi
 
-    log "SUCCESS" "FiraCode and JetBrainsMono Nerd Fonts installed."
-    log "INFO" "You may need to set the font in your terminal emulator's settings."
+    # Summary of font installation
+    if [[ ${#installed_fonts[@]} -gt 0 ]]; then
+        log "SUCCESS" "Successfully installed ${#installed_fonts[@]} font(s): ${installed_fonts[*]}"
+        log "INFO" "You may need to set the font in your terminal emulator's settings."
+        log "INFO" "Recommended: FiraCode Nerd Font or JetBrainsMono Nerd Font"
+    fi
+
+    if [[ ${#failed_fonts[@]} -gt 0 ]]; then
+        log "WARNING" "Failed to install ${#failed_fonts[@]} font(s): ${failed_fonts[*]}"
+        log "INFO" "You can manually install these fonts later from: https://github.com/ryanoasis/nerd-fonts"
+    fi
+
     next_step
 }
 

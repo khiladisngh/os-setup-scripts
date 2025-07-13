@@ -158,6 +158,8 @@ log() {
             echo -e "${YELLOW}⏭️  [SKIP]${NC} $message" | tee -a "$LOG_FILE"
             ;;
         "HEADER")
+            # Clear screen for better UX before showing new step header
+            clear
             echo -e "\n${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════════════════╗${NC}"
             echo -e "${BOLD}${CYAN}║ 🚀 $message${NC}"
             echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════════════════╝${NC}\n"
@@ -237,6 +239,12 @@ next_step() {
     
     if [[ $CURRENT_STEP -gt 1 ]]; then
         echo -e " ${GREEN}✓${NC} Step completed in $(format_time $step_duration)"
+        
+        # Brief pause to let user see completion message before clearing to next step
+        if [[ $CURRENT_STEP -lt $TOTAL_STEPS ]]; then
+            echo -e "\n${CYAN}Moving to next step in 3 seconds...${NC}"
+            sleep 3
+        fi
     else
         echo ""
     fi
@@ -1868,6 +1876,9 @@ EOF
 # Generate installation summary
 generate_installation_summary() {
     local total_time=$(($(date +%s) - INSTALL_START_TIME))
+    
+    # Clear screen for clean summary presentation
+    clear
     
     echo -e "\n${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BOLD}${CYAN}║                           📊 INSTALLATION SUMMARY REPORT                             ║${NC}"

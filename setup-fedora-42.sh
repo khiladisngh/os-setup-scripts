@@ -58,7 +58,7 @@ readonly BOLD='\033[1m'
 readonly NC='\033[0m' # No Color
 
 # --- Global Variables ---
-TOTAL_STEPS=16
+TOTAL_STEPS=17
 CURRENT_STEP=0
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly LOGS_DIR="${SCRIPT_DIR}/logs"
@@ -67,6 +67,13 @@ readonly BACKUP_DIR="${HOME}/.config_backup_$(date +%Y%m%d_%H%M%S)"
 
 # WSL Detection
 IS_WSL=false
+
+# Installation tracking
+INSTALL_START_TIME=$(date +%s)
+STEP_START_TIME=$(date +%s)
+INSTALLED_TOOLS=()
+SKIPPED_TOOLS=()
+FAILED_TOOLS=()
 
 # ============================================================================
 # WSL DETECTION FUNCTION
@@ -124,7 +131,7 @@ configure_wsl_environment() {
 # UTILITY FUNCTIONS
 # ============================================================================
 
-# Enhanced logging function with timestamps and log levels
+# Enhanced logging function with timestamps, log levels, and visual indicators
 log() {
     local level="$1"
     local message="$2"
@@ -133,48 +140,111 @@ log() {
 
     case "$level" in
         "INFO")
-            echo -e "${BLUE}[INFO]${NC} ${timestamp}: $message" | tee -a "$LOG_FILE"
+            echo -e "${BLUE}ℹ️  [INFO]${NC} $message" | tee -a "$LOG_FILE"
             ;;
         "SUCCESS")
-            echo -e "${GREEN}[SUCCESS]${NC} ${timestamp}: $message" | tee -a "$LOG_FILE"
+            echo -e "${GREEN}✅ [SUCCESS]${NC} $message" | tee -a "$LOG_FILE"
             ;;
         "WARNING")
-            echo -e "${YELLOW}[WARNING]${NC} ${timestamp}: $message" | tee -a "$LOG_FILE"
+            echo -e "${YELLOW}⚠️  [WARNING]${NC} $message" | tee -a "$LOG_FILE"
             ;;
         "ERROR")
-            echo -e "${RED}[ERROR]${NC} ${timestamp}: $message" | tee -a "$LOG_FILE"
+            echo -e "${RED}❌ [ERROR]${NC} $message" | tee -a "$LOG_FILE"
             ;;
         "PROGRESS")
-            echo -e "${MAGENTA}[PROGRESS]${NC} ${timestamp}: $message" | tee -a "$LOG_FILE"
+            echo -e "${MAGENTA}🔄 [PROGRESS]${NC} $message" | tee -a "$LOG_FILE"
+            ;;
+        "INSTALL")
+            echo -e "${CYAN}📦 [INSTALL]${NC} $message" | tee -a "$LOG_FILE"
+            ;;
+        "SKIP")
+            echo -e "${YELLOW}⏭️  [SKIP]${NC} $message" | tee -a "$LOG_FILE"
             ;;
         "HEADER")
             echo -e "\n${BOLD}${CYAN}╔════════════════════════════════════════════════════════════════════════════════╗${NC}"
-            echo -e "${BOLD}${CYAN}║ $message${NC}"
+            echo -e "${BOLD}${CYAN}║ 🚀 $message${NC}"
             echo -e "${BOLD}${CYAN}╚════════════════════════════════════════════════════════════════════════════════╝${NC}\n"
             echo "$timestamp: HEADER: $message" >> "$LOG_FILE"
             ;;
     esac
+    
+    # Also log to file with timestamp
+    echo "$timestamp: [$level] $message" >> "$LOG_FILE"
 }
 
-# Progress bar function
+# Spinner function for long operations
+show_spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\'
+    local message="${2:-Processing}"
+    
+    while kill -0 "$pid" 2>/dev/null; do
+        local temp=${spinstr#?}
+        printf "\r${CYAN}[%c]${NC} %s..." "$spinstr" "$message"
+        spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+    done
+    printf "\r"
+}
+
+# Enhanced progress bar function with time estimation
 show_progress() {
     local current=$1
     local total=$2
     local width=50
     local percentage=$((current * 100 / total))
     local completed=$((current * width / total))
+    
+    # Calculate time estimates
+    local elapsed_time=$(($(date +%s) - INSTALL_START_TIME))
+    local estimated_total_time=$((elapsed_time * total / current))
+    local remaining_time=$((estimated_total_time - elapsed_time))
+    
+    # Format time
+    local elapsed_formatted=$(format_time $elapsed_time)
+    local remaining_formatted=$(format_time $remaining_time)
 
     printf "\r${BLUE}["
     for ((i=0; i<completed; i++)); do printf "█"; done
     for ((i=completed; i<width; i++)); do printf "░"; done
-    printf "] %d%% (%d/%d)${NC}" "$percentage" "$current" "$total"
+    printf "] %d%% (%d/%d) ${NC}" "$percentage" "$current" "$total"
+    
+    if [[ $current -gt 1 ]]; then
+        printf " ${YELLOW}⏱️  Elapsed: %s | ETA: %s${NC}" "$elapsed_formatted" "$remaining_formatted"
+    fi
 }
 
-# Step progress function
+# Format time function
+format_time() {
+    local seconds=$1
+    local minutes=$((seconds / 60))
+    local hours=$((minutes / 60))
+    
+    if [[ $hours -gt 0 ]]; then
+        printf "%dh %dm %ds" $hours $((minutes % 60)) $((seconds % 60))
+    elif [[ $minutes -gt 0 ]]; then
+        printf "%dm %ds" $minutes $((seconds % 60))
+    else
+        printf "%ds" $seconds
+    fi
+}
+
+# Step progress function with timing
 next_step() {
+    local step_end_time=$(date +%s)
+    local step_duration=$((step_end_time - STEP_START_TIME))
+    
     CURRENT_STEP=$((CURRENT_STEP + 1))
     show_progress $CURRENT_STEP $TOTAL_STEPS
-    echo ""
+    
+    if [[ $CURRENT_STEP -gt 1 ]]; then
+        echo -e " ${GREEN}✓${NC} Step completed in $(format_time $step_duration)"
+    else
+        echo ""
+    fi
+    
+    STEP_START_TIME=$(date +%s)
 }
 
 # Error handling function
@@ -185,8 +255,24 @@ handle_error() {
 
     if [[ $exit_code -ne 0 ]]; then
         log "ERROR" "Command failed: '$command' (line $line_number, exit code: $exit_code)"
-        echo -e "\n${RED}${BOLD}An error occurred. The script cannot continue.${NC}"
-        echo -e "${YELLOW}Please check the log file for details: ${LOG_FILE}${NC}"
+        echo -e "\n${RED}${BOLD}💥 An error occurred. The script cannot continue.${NC}"
+        echo -e "${YELLOW}📋 Please check the log file for details: ${LOG_FILE}${NC}"
+        
+        # Generate partial summary before exiting
+        echo -e "\n${BOLD}${YELLOW}📊 PARTIAL INSTALLATION SUMMARY:${NC}"
+        if [[ ${#INSTALLED_TOOLS[@]} -gt 0 ]]; then
+            echo -e "${GREEN}✅ Successfully installed: ${#INSTALLED_TOOLS[@]} items${NC}"
+        fi
+        if [[ ${#SKIPPED_TOOLS[@]} -gt 0 ]]; then
+            echo -e "${YELLOW}⏭️  Skipped: ${#SKIPPED_TOOLS[@]} items${NC}"
+        fi
+        if [[ ${#FAILED_TOOLS[@]} -gt 0 ]]; then
+            echo -e "${RED}❌ Failed: ${#FAILED_TOOLS[@]} items${NC}"
+        fi
+        
+        echo -e "\n${CYAN}💡 You can re-run this script after fixing the issue.${NC}"
+        echo -e "${CYAN}   The script will skip already installed components.${NC}"
+        
         exit $exit_code
     fi
 }
@@ -234,6 +320,73 @@ backup_file() {
         log "INFO" "Backing up $1 to ${BACKUP_DIR}/"
         cp "$1" "${BACKUP_DIR}/"
     fi
+}
+
+# Track installed tools
+track_installed() {
+    local tool="$1"
+    INSTALLED_TOOLS+=("$tool")
+    log "SUCCESS" "$tool has been installed successfully"
+}
+
+# Track skipped tools
+track_skipped() {
+    local tool="$1"
+    SKIPPED_TOOLS+=("$tool")
+    log "SKIP" "$tool is already installed"
+}
+
+# Track failed tools
+track_failed() {
+    local tool="$1"
+    FAILED_TOOLS+=("$tool")
+    log "ERROR" "$tool installation failed"
+}
+
+# Run command with enhanced feedback
+run_with_feedback() {
+    local command="$1"
+    local description="$2"
+    local log_level="${3:-INFO}"
+    
+    log "$log_level" "Running: $description"
+    
+    # Run command in background to show spinner
+    eval "$command" &
+    local pid=$!
+    
+    # Show spinner while command runs
+    show_spinner "$pid" "$description"
+    
+    # Wait for command to complete and check exit code
+    wait "$pid"
+    local exit_code=$?
+    
+    if [[ $exit_code -eq 0 ]]; then
+        log "SUCCESS" "$description completed successfully"
+    else
+        log "ERROR" "$description failed with exit code $exit_code"
+        return $exit_code
+    fi
+}
+
+# Enhanced DNF installation with progress
+install_dnf_packages() {
+    local packages=("$@")
+    local description="Installing packages: ${packages[*]}"
+    
+    log "INSTALL" "$description"
+    
+    # Use dnf with progress output
+    sudo dnf install -y "${packages[@]}" 2>&1 | while IFS= read -r line; do
+        if [[ "$line" == *"Installing"* ]] || [[ "$line" == *"Downloading"* ]]; then
+            printf "\r${CYAN}📦 $line${NC}"
+        elif [[ "$line" == *"Complete!"* ]]; then
+            printf "\r${GREEN}✅ Installation completed successfully${NC}\n"
+        fi
+    done
+    
+    return ${PIPESTATUS[0]}
 }
 
 # ============================================================================
@@ -308,15 +461,85 @@ check_requirements() {
 # 2. System Update
 update_system() {
     log "HEADER" "STEP 2/$TOTAL_STEPS: SYSTEM UPDATE"
-    log "INFO" "Updating and upgrading system packages. This may take a while..."
-    sudo dnf upgrade --refresh -y
-    log "SUCCESS" "System update completed."
+    log "INFO" "Checking for system updates..."
+    
+    # Check if updates are available
+    local updates_available
+    updates_available=$(sudo dnf check-update --quiet 2>/dev/null | wc -l)
+    
+    if [[ $updates_available -eq 0 ]]; then
+        log "SUCCESS" "System is already up to date"
+        track_skipped "System Updates"
+    else
+        log "INFO" "Found $updates_available package updates available"
+        log "PROGRESS" "Updating and upgrading system packages. This may take a while..."
+        
+        if run_with_feedback "sudo dnf upgrade --refresh -y" "System package update" "INSTALL"; then
+            track_installed "System Updates"
+        else
+            track_failed "System Updates"
+        fi
+    fi
+    
     next_step
 }
 
-# 3. NVIDIA Graphics Driver
+# 3. Essential Packages Installation
+install_essential_packages() {
+    log "HEADER" "STEP 3/$TOTAL_STEPS: ESSENTIAL PACKAGES"
+    log "INFO" "Installing essential packages required for other installations..."
+    
+    # Essential packages that other installations depend on
+    local essential_packages=(
+        "curl"
+        "wget"
+        "git"
+        "vim"
+        "nano"
+        "tree"
+        "unzip"
+        "zip"
+        "tar"
+        "gzip"
+        "which"
+        "ca-certificates"
+        "gnupg"
+        "software-properties-common"
+        "dnf-plugins-core"
+    )
+    
+    # Check and install each essential package
+    local packages_to_install=()
+    for package in "${essential_packages[@]}"; do
+        if ! rpm -q "$package" &>/dev/null; then
+            packages_to_install+=("$package")
+        else
+            log "INFO" "$package is already installed"
+        fi
+    done
+    
+    if [[ ${#packages_to_install[@]} -gt 0 ]]; then
+        log "PROGRESS" "Installing ${#packages_to_install[@]} essential packages: ${packages_to_install[*]}"
+        if run_with_feedback "sudo dnf install -y ${packages_to_install[*]}" "Essential packages installation" "INSTALL"; then
+            for package in "${packages_to_install[@]}"; do
+                track_installed "$package"
+            done
+        else
+            for package in "${packages_to_install[@]}"; do
+                track_failed "$package"
+            done
+        fi
+    else
+        log "SUCCESS" "All essential packages are already installed"
+        track_skipped "Essential Packages"
+    fi
+    
+    next_step
+}
+
+# 4. NVIDIA Graphics Driver
 install_nvidia_driver() {
-    log "HEADER" "STEP 3/$TOTAL_STEPS: NVIDIA GRAPHICS DRIVER"
+    log "HEADER" "STEP 4/$TOTAL_STEPS: NVIDIA GRAPHICS DRIVER"
 
     # Skip NVIDIA drivers in WSL
     if [[ "$IS_WSL" == "true" ]]; then
@@ -327,12 +550,14 @@ install_nvidia_driver() {
 
     if ! lspci | grep -iq 'VGA.*NVIDIA'; then
         log "INFO" "No NVIDIA GPU detected. Skipping this step."
+        track_skipped "NVIDIA Drivers (No GPU)"
         next_step
         return
     fi
 
     if command_exists nvidia-smi; then
-        log "INFO" "NVIDIA drivers are already installed. Skipping."
+        log "SUCCESS" "NVIDIA drivers are already installed. Skipping."
+        track_skipped "NVIDIA Drivers"
         next_step
         return
     fi
@@ -362,9 +587,9 @@ install_nvidia_driver() {
     fi
 }
 
-# 4. ZSH, Oh My ZSH, and Plugins
+# 5. ZSH, Oh My ZSH, and Plugins
 install_zsh_ohmyzsh() {
-    log "HEADER" "STEP 4/$TOTAL_STEPS: ZSH & OH MY ZSH"
+    log "HEADER" "STEP 5/$TOTAL_STEPS: ZSH & OH MY ZSH"
 
     log "INFO" "Installing ZSH..."
     sudo dnf install -y zsh
@@ -479,9 +704,9 @@ EOF
     next_step
 }
 
-# 5. Starship Terminal Prompt
+# 6. Starship Terminal Prompt
 install_starship() {
-    log "HEADER" "STEP 5/$TOTAL_STEPS: STARSHIP TERMINAL PROMPT"
+    log "HEADER" "STEP 6/$TOTAL_STEPS: STARSHIP TERMINAL PROMPT"
 
     if command_exists starship; then
         log "INFO" "Starship is already installed. Skipping."
@@ -594,9 +819,9 @@ EOF
     next_step
 }
 
-# 6. Python Development (Pyenv, Poetry, uv)
+# 7. Python Development (Pyenv, Poetry, uv)
 install_python_tools() {
-    log "HEADER" "STEP 6/$TOTAL_STEPS: PYTHON DEVELOPMENT TOOLS"
+    log "HEADER" "STEP 7/$TOTAL_STEPS: PYTHON DEVELOPMENT TOOLS"
 
     log "INFO" "Installing Python build dependencies..."
     sudo dnf install -y gcc make patch zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel tk-devel libffi-devel xz-devel
@@ -642,9 +867,9 @@ install_python_tools() {
     next_step
 }
 
-# 7. Rust Development Environment
+# 8. Rust Development Environment
 install_rust() {
-    log "HEADER" "STEP 7/$TOTAL_STEPS: RUST DEVELOPMENT ENVIRONMENT"
+    log "HEADER" "STEP 8/$TOTAL_STEPS: RUST DEVELOPMENT ENVIRONMENT"
 
     if command_exists rustc; then
         log "INFO" "Rust is already installed. Updating..."
@@ -664,9 +889,9 @@ install_rust() {
     next_step
 }
 
-# 8. Go Development Environment
+# 9. Go Development Environment
 install_golang() {
-    log "HEADER" "STEP 8/$TOTAL_STEPS: GO DEVELOPMENT ENVIRONMENT"
+    log "HEADER" "STEP 9/$TOTAL_STEPS: GO DEVELOPMENT ENVIRONMENT"
 
     if command_exists go; then
         log "INFO" "Go is already installed. Skipping."
@@ -682,21 +907,53 @@ install_golang() {
     next_step
 }
 
-# 9. C++ Development Environment
+# 10. C++ Development Environment
 install_cpp_tools() {
-    log "HEADER" "STEP 9/$TOTAL_STEPS: C++ DEVELOPMENT ENVIRONMENT"
+    log "HEADER" "STEP 10/$TOTAL_STEPS: C++ DEVELOPMENT ENVIRONMENT"
 
-    log "INFO" "Installing C++ build essentials and tools..."
-    sudo dnf group install -y kde-software-development c-development
-    sudo dnf install -y cmake gdb valgrind clang lldb
+    # Check if key C++ tools are already installed
+    local tools_to_check=(
+        "cmake"
+        "gdb"
+        "valgrind"
+        "clang"
+        "lldb"
+        "gcc"
+        "g++"
+    )
 
-    log "SUCCESS" "C++ development environment installed."
+    local missing_tools=()
+    for tool in "${tools_to_check[@]}"; do
+        if ! command_exists "$tool"; then
+            missing_tools+=("$tool")
+        else
+            track_skipped "$tool"
+        fi
+    done
+
+    if [[ ${#missing_tools[@]} -gt 0 ]]; then
+        log "PROGRESS" "Installing C++ build essentials and tools. Missing: ${missing_tools[*]}"
+        if run_with_feedback "sudo dnf group install -y kde-software-development c-development" "C++ development groups" "INSTALL" &&
+           run_with_feedback "sudo dnf install -y cmake gdb valgrind clang lldb" "C++ development tools" "INSTALL"; then
+            for tool in "${missing_tools[@]}"; do
+                track_installed "$tool"
+            done
+        else
+            for tool in "${missing_tools[@]}"; do
+                track_failed "$tool"
+            done
+        fi
+    else
+        log "SUCCESS" "All C++ development tools are already installed. Skipping."
+        track_skipped "C++ Development Environment"
+    fi
+
     next_step
 }
 
-# 10. Modern Tools via DNF
+# 11. Modern Tools via DNF
 install_modern_tools_dnf() {
-    log "HEADER" "STEP 10/$TOTAL_STEPS: MODERN TOOLS (DNF)"
+    log "HEADER" "STEP 11/$TOTAL_STEPS: MODERN TOOLS (DNF)"
 
     local tools=(
         atuin
@@ -709,16 +966,51 @@ install_modern_tools_dnf() {
         htop
     )
 
-    log "INFO" "Installing modern CLI tools via DNF..."
-    sudo dnf install -y "${tools[@]}"
+    # Check which tools are already installed
+    local tools_to_install=()
+    for tool in "${tools[@]}"; do
+        # Check if package is already installed
+        if rpm -q "$tool" &>/dev/null; then
+            track_skipped "$tool"
+        else
+            # For some tools, check if command exists (in case installed differently)
+            local cmd_name="$tool"
+            if [[ "$tool" == "fd-find" ]]; then
+                cmd_name="fd"
+            elif [[ "$tool" == "ripgrep" ]]; then
+                cmd_name="rg"
+            fi
+            
+            if command_exists "$cmd_name"; then
+                track_skipped "$tool ($cmd_name)"
+            else
+                tools_to_install+=("$tool")
+            fi
+        fi
+    done
 
-    log "SUCCESS" "Modern tools from DNF installed."
+    if [[ ${#tools_to_install[@]} -gt 0 ]]; then
+        log "PROGRESS" "Installing ${#tools_to_install[@]} modern CLI tools via DNF: ${tools_to_install[*]}"
+        if run_with_feedback "sudo dnf install -y ${tools_to_install[*]}" "Modern CLI tools installation" "INSTALL"; then
+            for tool in "${tools_to_install[@]}"; do
+                track_installed "$tool"
+            done
+        else
+            for tool in "${tools_to_install[@]}"; do
+                track_failed "$tool"
+            done
+        fi
+    else
+        log "SUCCESS" "All modern CLI tools are already installed. Skipping."
+        track_skipped "Modern CLI Tools (DNF)"
+    fi
+
     next_step
 }
 
-# 11. Modern Tools via Cargo
+# 12. Modern Tools via Cargo
 install_modern_tools_cargo() {
-    log "HEADER" "STEP 11/$TOTAL_STEPS: MODERN TOOLS (CARGO)"
+    log "HEADER" "STEP 12/$TOTAL_STEPS: MODERN TOOLS (CARGO)"
 
     # Ensure cargo is available
     source "$HOME/.cargo/env"
@@ -738,23 +1030,58 @@ install_modern_tools_cargo() {
         tealdeer
     )
 
-    log "INFO" "Installing modern CLI tools via Cargo..."
+    log "PROGRESS" "Installing modern CLI tools via Cargo..."
+    local installed_count=0
+    local skipped_count=0
+    
     for tool in "${tools[@]}"; do
         if ! command_exists "$tool"; then
-            log "INFO" "Installing $tool..."
-            cargo install "$tool"
+            log "INSTALL" "Installing $tool via Cargo..."
+            if cargo install "$tool" &>/dev/null; then
+                track_installed "$tool"
+                installed_count=$((installed_count + 1))
+            else
+                track_failed "$tool"
+            fi
         else
-            log "INFO" "$tool is already installed. Skipping."
+            track_skipped "$tool"
+            skipped_count=$((skipped_count + 1))
         fi
     done
 
-    log "SUCCESS" "Modern tools from Cargo installed."
+    if [[ $installed_count -gt 0 ]]; then
+        log "SUCCESS" "Installed $installed_count modern CLI tools via Cargo"
+    fi
+    
+    if [[ $skipped_count -gt 0 ]]; then
+        log "INFO" "Skipped $skipped_count tools already installed"
+    fi
     next_step
 }
 
-# 12. Container Tools (Docker, Podman)
+# 13. Container Tools (Docker, Podman)
 install_container_tools() {
-    log "HEADER" "STEP 12/$TOTAL_STEPS: CONTAINER TOOLS"
+    log "HEADER" "STEP 13/$TOTAL_STEPS: CONTAINER TOOLS"
+
+    # Check if Docker and Podman are already installed
+    local docker_installed=false
+    local podman_installed=false
+    
+    if command_exists docker; then
+        docker_installed=true
+        log "INFO" "Docker is already installed"
+    fi
+    
+    if command_exists podman; then
+        podman_installed=true
+        log "INFO" "Podman is already installed"
+    fi
+
+    if [[ "$docker_installed" == "true" && "$podman_installed" == "true" ]]; then
+        log "INFO" "Both Docker and Podman are already installed. Skipping."
+        next_step
+        return
+    fi
 
     if ! confirm "Install Docker and Podman?"; then
         log "INFO" "Skipping container tools installation."
@@ -767,63 +1094,95 @@ install_container_tools() {
         log "INFO" "WSL detected. Installing container tools compatible with WSL..."
         log "INFO" "Note: For best WSL experience, consider using Docker Desktop for Windows."
         
-        log "INFO" "Installing Podman (lightweight container engine)..."
-        sudo dnf install -y podman podman-compose
+        if [[ "$podman_installed" == "false" ]]; then
+            log "INFO" "Installing Podman (lightweight container engine)..."
+            sudo dnf install -y podman podman-compose
+        fi
         
-        # Docker installation for WSL (without systemd service management)
-        log "INFO" "Installing Docker (without systemd service)..."
-        sudo dnf install -y dnf-plugins-core
-        sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-        sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-        
-        log "INFO" "Adding current user ($USER) to the 'docker' group..."
-        sudo usermod -aG docker "$USER"
-        
-        log "WARNING" "In WSL, Docker daemon needs to be started manually or use Docker Desktop."
-        log "WARNING" "To start Docker: sudo dockerd &"
-        log "WARNING" "Or install Docker Desktop for Windows for seamless integration."
+        if [[ "$docker_installed" == "false" ]]; then
+            # Docker installation for WSL (without systemd service management)
+            log "INFO" "Installing Docker (without systemd service)..."
+            sudo dnf install -y dnf-plugins-core
+            sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+            sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            
+            log "INFO" "Adding current user ($USER) to the 'docker' group..."
+            sudo usermod -aG docker "$USER"
+            
+            log "WARNING" "In WSL, Docker daemon needs to be started manually or use Docker Desktop."
+            log "WARNING" "To start Docker: sudo dockerd &"
+            log "WARNING" "Or install Docker Desktop for Windows for seamless integration."
+        fi
         
     else
         # Regular Linux installation
-        log "INFO" "Installing Podman (Fedora's native container engine)..."
-        sudo dnf install -y podman podman-compose
+        if [[ "$podman_installed" == "false" ]]; then
+            log "INFO" "Installing Podman (Fedora's native container engine)..."
+            sudo dnf install -y podman podman-compose
+        fi
 
-        log "INFO" "Installing Docker..."
-        sudo dnf install -y dnf-plugins-core
-        sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-        sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        if [[ "$docker_installed" == "false" ]]; then
+            log "INFO" "Installing Docker..."
+            sudo dnf install -y dnf-plugins-core
+            sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+            sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-        log "INFO" "Starting and enabling Docker service..."
-        sudo systemctl start docker
-        sudo systemctl enable docker
+            log "INFO" "Starting and enabling Docker service..."
+            sudo systemctl start docker
+            sudo systemctl enable docker
 
-        log "INFO" "Adding current user ($USER) to the 'docker' group..."
-        sudo usermod -aG docker "$USER"
-        log "WARNING" "You must log out and log back in for the Docker group changes to take effect."
+            log "INFO" "Adding current user ($USER) to the 'docker' group..."
+            sudo usermod -aG docker "$USER"
+            log "WARNING" "You must log out and log back in for the Docker group changes to take effect."
+        fi
     fi
 
     log "SUCCESS" "Container tools installed successfully."
     next_step
 }
 
-# 13. Fonts Installation (FiraCode and JetBrains Mono Nerd Fonts)
+# 14. Fonts Installation (FiraCode and JetBrains Mono Nerd Fonts)
 install_fonts() {
-    log "HEADER" "STEP 13/$TOTAL_STEPS: NERD FONTS INSTALLATION"
+    log "HEADER" "STEP 14/$TOTAL_STEPS: NERD FONTS INSTALLATION"
 
     local font_dir="$HOME/.local/share/fonts"
     log "INFO" "Creating fonts directory at $font_dir"
     mkdir -p "$font_dir"
 
+    # Check if FiraCode and JetBrainsMono Nerd Fonts are already installed
+    local firacode_installed=false
+    local jetbrains_installed=false
+    
+    if fc-list | grep -qi "FiraCode.*Nerd"; then
+        firacode_installed=true
+        log "INFO" "FiraCode Nerd Font is already installed"
+    fi
+    
+    if fc-list | grep -qi "JetBrainsMono.*Nerd"; then
+        jetbrains_installed=true
+        log "INFO" "JetBrainsMono Nerd Font is already installed"
+    fi
+
+    if [[ "$firacode_installed" == "true" && "$jetbrains_installed" == "true" ]]; then
+        log "INFO" "Both FiraCode and JetBrainsMono Nerd Fonts are already installed. Skipping."
+        next_step
+        return
+    fi
+
     local tmp_dir
     tmp_dir=$(mktemp -d)
 
-    log "INFO" "Installing FiraCode Nerd Font..."
-    wget -q --show-progress -P "$tmp_dir" https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip
-    unzip -o "$tmp_dir/FiraCode.zip" -d "$font_dir"
+    if [[ "$firacode_installed" == "false" ]]; then
+        log "INFO" "Installing FiraCode Nerd Font..."
+        wget -q --show-progress -P "$tmp_dir" https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip
+        unzip -o "$tmp_dir/FiraCode.zip" -d "$font_dir"
+    fi
 
-    log "INFO" "Installing JetBrainsMono Nerd Font..."
-    wget -q --show-progress -P "$tmp_dir" https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/JetBrainsMono.zip
-    unzip -o "$tmp_dir/JetBrainsMono.zip" -d "$font_dir"
+    if [[ "$jetbrains_installed" == "false" ]]; then
+        log "INFO" "Installing JetBrainsMono Nerd Font..."
+        wget -q --show-progress -P "$tmp_dir" https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/JetBrainsMono.zip
+        unzip -o "$tmp_dir/JetBrainsMono.zip" -d "$font_dir"
+    fi
 
     log "INFO" "Cleaning up temporary files..."
     rm -rf "$tmp_dir"
@@ -836,9 +1195,9 @@ install_fonts() {
     next_step
 }
 
-# 14. GitHub CLI Installation
+# 15. GitHub CLI Installation
 install_github_cli() {
-    log "HEADER" "STEP 14/$TOTAL_STEPS: GITHUB CLI INSTALLATION"
+    log "HEADER" "STEP 15/$TOTAL_STEPS: GITHUB CLI INSTALLATION"
 
     if command_exists gh; then
         log "INFO" "GitHub CLI is already installed. Skipping."
@@ -851,9 +1210,9 @@ install_github_cli() {
     next_step
 }
 
-# 15. Create Comprehensive Aliases File
+# 16. Create Comprehensive Aliases File
 create_aliases() {
-    log "HEADER" "STEP 15/$TOTAL_STEPS: CREATING ALIASES FILE"
+    log "HEADER" "STEP 16/$TOTAL_STEPS: CREATING ALIASES FILE"
 
     log "INFO" "Creating comprehensive aliases file at ~/.aliases..."
     backup_file "$HOME/.aliases"
@@ -872,7 +1231,7 @@ alias ll='exa -l --icons'
 alias la='exa -la --icons'
 alias llt='exa -l --icons --sort=modified'
 alias tree='exa --tree'
-alias cat='bat --paging=never --style=plain'
+alias cat='bat --paging=never'
 alias find='fd'
 alias grep='rg'
 alias hg='history | rg'
@@ -976,30 +1335,81 @@ EOF
     next_step
 }
 
-# 16. Finalize Installation
+# Generate installation summary
+generate_installation_summary() {
+    local total_time=$(($(date +%s) - INSTALL_START_TIME))
+    
+    echo -e "\n${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                           📊 INSTALLATION SUMMARY REPORT                            ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════════════════════════════╝${NC}\n"
+    
+    echo -e "${BOLD}${WHITE}⏱️  Total Installation Time: ${GREEN}$(format_time $total_time)${NC}\n"
+    
+    # Show installed tools
+    if [[ ${#INSTALLED_TOOLS[@]} -gt 0 ]]; then
+        echo -e "${BOLD}${GREEN}✅ SUCCESSFULLY INSTALLED (${#INSTALLED_TOOLS[@]} items):${NC}"
+        for tool in "${INSTALLED_TOOLS[@]}"; do
+            echo -e "   ${GREEN}•${NC} $tool"
+        done
+        echo ""
+    fi
+    
+    # Show skipped tools
+    if [[ ${#SKIPPED_TOOLS[@]} -gt 0 ]]; then
+        echo -e "${BOLD}${YELLOW}⏭️  SKIPPED (${#SKIPPED_TOOLS[@]} items):${NC}"
+        for tool in "${SKIPPED_TOOLS[@]}"; do
+            echo -e "   ${YELLOW}•${NC} $tool"
+        done
+        echo ""
+    fi
+    
+    # Show failed tools
+    if [[ ${#FAILED_TOOLS[@]} -gt 0 ]]; then
+        echo -e "${BOLD}${RED}❌ FAILED (${#FAILED_TOOLS[@]} items):${NC}"
+        for tool in "${FAILED_TOOLS[@]}"; do
+            echo -e "   ${RED}•${NC} $tool"
+        done
+        echo ""
+    fi
+    
+    # Overall status
+    local total_processed=$((${#INSTALLED_TOOLS[@]} + ${#SKIPPED_TOOLS[@]} + ${#FAILED_TOOLS[@]}))
+    local success_rate=$((${#INSTALLED_TOOLS[@]} * 100 / total_processed))
+    
+    if [[ ${#FAILED_TOOLS[@]} -eq 0 ]]; then
+        echo -e "${BOLD}${GREEN}🎯 Installation Status: SUCCESS (100% completion rate)${NC}"
+    else
+        echo -e "${BOLD}${YELLOW}⚠️  Installation Status: PARTIAL ($success_rate% success rate)${NC}"
+    fi
+    
+    echo -e "\n${BOLD}${CYAN}📋 Next Steps:${NC}"
+    echo -e "• ${CYAN}Log file:${NC} ${LOG_FILE}"
+    echo -e "• ${CYAN}Backup directory:${NC} ${BACKUP_DIR}"
+    echo -e "• ${CYAN}Reboot recommended${NC} for kernel modules and shell changes"
+    echo -e "• ${CYAN}Run 'gh auth login'${NC} to authenticate with GitHub"
+    echo -e "• ${CYAN}Configure terminal font${NC} to use installed Nerd Fonts"
+    echo -e "• ${CYAN}Source ~/.zshrc${NC} to apply new shell settings"
+    echo ""
+}
+
+# 17. Finalize Installation
 finalize_setup() {
-    log "HEADER" "STEP 16/$TOTAL_STEPS: FINALIZING SETUP"
+    log "HEADER" "STEP 17/$TOTAL_STEPS: FINALIZING SETUP"
 
     # Configure git to use delta for diffs
     log "INFO" "Configuring git to use delta for diffs..."
-    git config --global core.pager "delta"
-    git config --global interactive.diffFilter "delta --color-only"
-    git config --global delta.navigate "true"
-    git config --global delta.side-by-side "true"
-    git config --global delta.line-numbers "true"
+    if run_with_feedback "git config --global core.pager 'delta' && git config --global interactive.diffFilter 'delta --color-only' && git config --global delta.navigate 'true' && git config --global delta.side-by-side 'true' && git config --global delta.line-numbers 'true'" "Git delta configuration" "INSTALL"; then
+        track_installed "Git Delta Configuration"
+    else
+        track_failed "Git Delta Configuration"
+    fi
 
     log "SUCCESS" "All installation and configuration steps are complete!"
-    echo -e "\n${BOLD}${GREEN}🎉 Fedora Development Environment Setup is Finished! 🎉${NC}\n"
-
-    log "INFO" "A detailed log of this session is available at: ${LOG_FILE}"
-
-    echo -e "${YELLOW}${BOLD}IMPORTANT - PLEASE READ THE FOLLOWING:${NC}"
-    echo -e "1. ${CYAN}A full system restart is recommended${NC} to ensure all changes, especially kernel modules and shell settings, are applied correctly."
-    echo -e "2. ${CYAN}Log out and log back in${NC} to start using Zsh as your default shell and for Docker permissions to apply."
-    echo -e "3. Open a new terminal and run ${WHITE}'source ~/.zshrc'${NC} to apply the new settings in your current session."
-    echo -e "4. Authenticate with GitHub by running: ${WHITE}'gh auth login'${NC}"
-    echo -e "5. Set your new Nerd Font in your terminal's settings (e.g., Konsole -> Settings -> Edit Profile -> Appearance)."
-    echo -e "6. Review the generated ${WHITE}~/.aliases${NC} file to familiarize yourself with the new shortcuts."
+    
+    # Generate comprehensive summary
+    generate_installation_summary
+    
+    echo -e "${BOLD}${GREEN}🎉 Fedora Development Environment Setup is Finished! 🎉${NC}\n"
 
     next_step
 }
@@ -1009,24 +1419,57 @@ finalize_setup() {
 # ============================================================================
 main() {
     clear
-    echo -e "${BOLD}${CYAN}Welcome to the Fedora 42 Development Environment Setup Script!${NC}"
-    echo -e "This script will install and configure a suite of modern development tools."
+    
+    # Enhanced welcome screen
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║                    🚀 FEDORA 42 DEVELOPMENT ENVIRONMENT SETUP                       ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════════════════════════════╝${NC}\n"
+    
+    echo -e "${BOLD}${WHITE}📋 This script will install and configure:${NC}"
+    echo -e "   ${GREEN}•${NC} Modern development tools (Python, Rust, Go, C++)"
+    echo -e "   ${GREEN}•${NC} Enhanced shell environment (ZSH, Oh My ZSH, Starship)"
+    echo -e "   ${GREEN}•${NC} Container technologies (Docker, Podman)"
+    echo -e "   ${GREEN}•${NC} Modern CLI utilities (ripgrep, bat, fd, exa, etc.)"
+    echo -e "   ${GREEN}•${NC} Nerd Fonts for better terminal experience"
+    echo -e "   ${GREEN}•${NC} GitHub CLI and development configurations"
+    echo -e "   ${GREEN}•${NC} System optimizations and WSL compatibility"
+    
+    echo -e "\n${BOLD}${WHITE}📊 Installation Progress:${NC}"
+    echo -e "   ${BLUE}•${NC} ${TOTAL_STEPS} total steps"
+    echo -e "   ${BLUE}•${NC} Estimated time: 15-45 minutes (depends on internet speed)"
+    echo -e "   ${BLUE}•${NC} Automatic backup of existing configurations"
+    echo -e "   ${BLUE}•${NC} Detailed logging and progress tracking"
+    
+    echo -e "\n${BOLD}${WHITE}📄 Log and Backup Information:${NC}"
+    echo -e "   ${CYAN}•${NC} Log file: ${LOG_FILE}"
+    echo -e "   ${CYAN}•${NC} Backup directory: ${BACKUP_DIR}"
     
     # Create logs directory if it doesn't exist
     mkdir -p "$LOGS_DIR"
     
-    echo -e "A log file will be created at: ${LOG_FILE}\n"
-
-if ! confirm "Do you want to begin the installation?" "y"; then
-    echo "Installation aborted by user."
-    exit 0
-fi
-
+    echo -e "\n${BOLD}${YELLOW}⚠️  Prerequisites:${NC}"
+    echo -e "   ${YELLOW}•${NC} Active internet connection"
+    echo -e "   ${YELLOW}•${NC} Sudo privileges"
+    echo -e "   ${YELLOW}•${NC} At least 10GB free disk space"
+    echo -e "   ${YELLOW}•${NC} Fedora 42 (other versions may work but are not tested)"
+    
+    echo ""
+    if ! confirm "🚀 Ready to begin the installation?" "y"; then
+        echo -e "${RED}Installation aborted by user.${NC}"
+        exit 0
+    fi
+    
+    echo -e "\n${BOLD}${GREEN}🎯 Starting installation process...${NC}\n"
+    
     create_backup_dir
+    
+    # Initialize step timing
+    STEP_START_TIME=$(date +%s)
 
     # --- Run Installation Steps ---
     check_requirements
     update_system
+    install_essential_packages
     install_nvidia_driver
     install_zsh_ohmyzsh
     install_starship

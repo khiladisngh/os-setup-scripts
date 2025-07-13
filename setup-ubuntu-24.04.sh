@@ -58,7 +58,7 @@ readonly BOLD='\033[1m'
 readonly NC='\033[0m' # No Color
 
 # --- Global Variables ---
-TOTAL_STEPS=16
+TOTAL_STEPS=17
 CURRENT_STEP=0
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly LOGS_DIR="${SCRIPT_DIR}/logs"
@@ -314,9 +314,57 @@ update_system() {
     next_step
 }
 
-# 3. NVIDIA Graphics Driver
+# 3. Essential Packages Installation
+install_essential_packages() {
+    log "HEADER" "STEP 3/$TOTAL_STEPS: ESSENTIAL PACKAGES"
+    log "INFO" "Installing essential packages required for other installations..."
+    
+    # Essential packages that other installations depend on
+    local essential_packages=(
+        "curl"
+        "wget"
+        "git"
+        "vim"
+        "nano"
+        "tree"
+        "unzip"
+        "zip"
+        "tar"
+        "gzip"
+        "ca-certificates"
+        "curl"
+        "gnupg"
+        "lsb-release"
+        "software-properties-common"
+        "apt-transport-https"
+        "build-essential"
+        "make"
+    )
+    
+    # Check and install each essential package
+    local packages_to_install=()
+    for package in "${essential_packages[@]}"; do
+        if ! dpkg -l | grep -q "^ii  $package "; then
+            packages_to_install+=("$package")
+        else
+            log "INFO" "$package is already installed"
+        fi
+    done
+    
+    if [[ ${#packages_to_install[@]} -gt 0 ]]; then
+        log "INFO" "Installing essential packages: ${packages_to_install[*]}"
+        sudo apt install -y "${packages_to_install[@]}"
+        log "SUCCESS" "Essential packages installed successfully"
+    else
+        log "INFO" "All essential packages are already installed"
+    fi
+    
+    next_step
+}
+
+# 4. NVIDIA Graphics Driver
 install_nvidia_driver() {
-    log "HEADER" "STEP 3/$TOTAL_STEPS: NVIDIA GRAPHICS DRIVER"
+    log "HEADER" "STEP 4/$TOTAL_STEPS: NVIDIA GRAPHICS DRIVER"
 
     # Skip NVIDIA drivers in WSL
     if [[ "$IS_WSL" == "true" ]]; then
@@ -357,9 +405,9 @@ install_nvidia_driver() {
     fi
 }
 
-# 4. ZSH, Oh My ZSH, and Plugins
+# 5. ZSH, Oh My ZSH, and Plugins
 install_zsh_ohmyzsh() {
-    log "HEADER" "STEP 4/$TOTAL_STEPS: ZSH & OH MY ZSH"
+    log "HEADER" "STEP 5/$TOTAL_STEPS: ZSH & OH MY ZSH"
 
     log "INFO" "Installing ZSH..."
     sudo apt install -y zsh
@@ -474,9 +522,9 @@ EOF
     next_step
 }
 
-# 5. Starship Terminal Prompt
+# 6. Starship Terminal Prompt
 install_starship() {
-    log "HEADER" "STEP 5/$TOTAL_STEPS: STARSHIP TERMINAL PROMPT"
+    log "HEADER" "STEP 6/$TOTAL_STEPS: STARSHIP TERMINAL PROMPT"
 
     if command_exists starship; then
         log "INFO" "Starship is already installed. Skipping."
@@ -589,9 +637,9 @@ EOF
     next_step
 }
 
-# 6. Python Development (Pyenv, Poetry, uv)
+# 7. Python Development (Pyenv, Poetry, uv)
 install_python_tools() {
-    log "HEADER" "STEP 6/$TOTAL_STEPS: PYTHON DEVELOPMENT TOOLS"
+    log "HEADER" "STEP 7/$TOTAL_STEPS: PYTHON DEVELOPMENT TOOLS"
 
     log "INFO" "Installing Python build dependencies..."
     sudo apt install -y make build-essential libssl-dev zlib1g-dev \
@@ -639,9 +687,9 @@ install_python_tools() {
     next_step
 }
 
-# 7. Rust Development Environment
+# 8. Rust Development Environment
 install_rust() {
-    log "HEADER" "STEP 7/$TOTAL_STEPS: RUST DEVELOPMENT ENVIRONMENT"
+    log "HEADER" "STEP 8/$TOTAL_STEPS: RUST DEVELOPMENT ENVIRONMENT"
 
     if command_exists rustc; then
         log "INFO" "Rust is already installed. Updating..."
@@ -661,9 +709,9 @@ install_rust() {
     next_step
 }
 
-# 8. Go Development Environment
+# 9. Go Development Environment
 install_golang() {
-    log "HEADER" "STEP 8/$TOTAL_STEPS: GO DEVELOPMENT ENVIRONMENT"
+    log "HEADER" "STEP 9/$TOTAL_STEPS: GO DEVELOPMENT ENVIRONMENT"
 
     if command_exists go; then
         log "INFO" "Go is already installed. Skipping."
@@ -685,9 +733,9 @@ install_golang() {
     next_step
 }
 
-# 9. C++ Development Environment
+# 10. C++ Development Environment
 install_cpp_tools() {
-    log "HEADER" "STEP 9/$TOTAL_STEPS: C++ DEVELOPMENT ENVIRONMENT"
+    log "HEADER" "STEP 10/$TOTAL_STEPS: C++ DEVELOPMENT ENVIRONMENT"
 
     log "INFO" "Installing C++ build essentials and tools..."
     sudo apt install -y build-essential cmake gdb valgrind clang lldb
@@ -696,9 +744,9 @@ install_cpp_tools() {
     next_step
 }
 
-# 10. Modern Tools via APT
+# 11. Modern Tools via APT
 install_modern_tools_apt() {
-    log "HEADER" "STEP 10/$TOTAL_STEPS: MODERN TOOLS (APT)"
+    log "HEADER" "STEP 11/$TOTAL_STEPS: MODERN TOOLS (APT)"
 
     local tools=(
         ripgrep
@@ -726,9 +774,9 @@ install_modern_tools_apt() {
     next_step
 }
 
-# 11. Modern Tools via Cargo
+# 12. Modern Tools via Cargo
 install_modern_tools_cargo() {
-    log "HEADER" "STEP 11/$TOTAL_STEPS: MODERN TOOLS (CARGO)"
+    log "HEADER" "STEP 12/$TOTAL_STEPS: MODERN TOOLS (CARGO)"
 
     # Ensure cargo is available
     source "$HOME/.cargo/env"
@@ -764,9 +812,9 @@ install_modern_tools_cargo() {
     next_step
 }
 
-# 12. Container Tools (Docker, Podman)
+# 13. Container Tools (Docker, Podman)
 install_container_tools() {
-    log "HEADER" "STEP 12/$TOTAL_STEPS: CONTAINER TOOLS"
+    log "HEADER" "STEP 13/$TOTAL_STEPS: CONTAINER TOOLS"
 
     if ! confirm "Install Docker and Podman?"; then
         log "INFO" "Skipping container tools installation."
@@ -839,9 +887,9 @@ install_container_tools() {
     next_step
 }
 
-# 13. Fonts Installation (FiraCode and JetBrains Mono Nerd Fonts)
+# 14. Fonts Installation (FiraCode and JetBrains Mono Nerd Fonts)
 install_fonts() {
-    log "HEADER" "STEP 13/$TOTAL_STEPS: NERD FONTS INSTALLATION"
+    log "HEADER" "STEP 14/$TOTAL_STEPS: NERD FONTS INSTALLATION"
 
     local font_dir="$HOME/.local/share/fonts"
     log "INFO" "Creating fonts directory at $font_dir"
@@ -869,9 +917,9 @@ install_fonts() {
     next_step
 }
 
-# 14. GitHub CLI Installation
+# 15. GitHub CLI Installation
 install_github_cli() {
-    log "HEADER" "STEP 14/$TOTAL_STEPS: GITHUB CLI INSTALLATION"
+    log "HEADER" "STEP 15/$TOTAL_STEPS: GITHUB CLI INSTALLATION"
 
     if command_exists gh; then
         log "INFO" "GitHub CLI is already installed. Skipping."
@@ -888,9 +936,9 @@ install_github_cli() {
     next_step
 }
 
-# 15. Create Comprehensive Aliases File
+# 16. Create Comprehensive Aliases File
 create_aliases() {
-    log "HEADER" "STEP 15/$TOTAL_STEPS: CREATING ALIASES FILE"
+    log "HEADER" "STEP 16/$TOTAL_STEPS: CREATING ALIASES FILE"
 
     log "INFO" "Creating comprehensive aliases file at ~/.aliases..."
     backup_file "$HOME/.aliases"
@@ -1026,9 +1074,9 @@ EOF
     next_step
 }
 
-# 16. Finalize Installation
+# 17. Finalize Installation
 finalize_setup() {
-    log "HEADER" "STEP 16/$TOTAL_STEPS: FINALIZING SETUP"
+    log "HEADER" "STEP 17/$TOTAL_STEPS: FINALIZING SETUP"
 
     # Configure git to use delta for diffs
     log "INFO" "Configuring git to use delta for diffs..."
@@ -1077,6 +1125,7 @@ main() {
     # --- Run Installation Steps ---
     check_requirements
     update_system
+    install_essential_packages
     install_nvidia_driver
     install_zsh_ohmyzsh
     install_starship

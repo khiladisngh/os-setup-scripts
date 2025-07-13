@@ -54,7 +54,8 @@ readonly NC='\033[0m' # No Color
 
 # --- Global Variables ---
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly LOG_FILE="${SCRIPT_DIR}/wsl_setup_$(date +%Y%m%d_%H%M%S).log"
+readonly LOGS_DIR="${SCRIPT_DIR}/logs"
+readonly LOG_FILE="${LOGS_DIR}/wsl_setup_$(date +%Y%m%d_%H%M%S).log"
 readonly BACKUP_DIR="${HOME}/.config_backup_$(date +%Y%m%d_%H%M%S)"
 
 # Distribution detection
@@ -555,6 +556,9 @@ EOF
 # ============================================================================
 
 main() {
+    # Create logs directory if it doesn't exist
+    mkdir -p "$LOGS_DIR"
+    
     log "HEADER" "WSL DEVELOPMENT ENVIRONMENT SETUP"
     log "INFO" "Starting WSL setup script..."
     

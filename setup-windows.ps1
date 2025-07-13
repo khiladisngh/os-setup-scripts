@@ -38,7 +38,8 @@ $ProgressPreference = 'Continue'
 $script:TotalSteps = 16
 $script:CurrentStep = 0
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$script:LogFile = Join-Path $ScriptDir "windows_setup_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$script:LogsDir = Join-Path $ScriptDir "logs"
+$script:LogFile = Join-Path $script:LogsDir "windows_setup_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $script:BackupDir = Join-Path $env:USERPROFILE ".config_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 
 # ============================================================================
@@ -992,6 +993,12 @@ function Main {
     Clear-Host
     Write-Host "Welcome to the Windows Development Environment Setup Script!" -ForegroundColor Cyan
     Write-Host "This script will install and configure a suite of modern development tools." -ForegroundColor White
+    
+    # Create logs directory if it doesn't exist
+    if (-not (Test-Path $script:LogsDir)) {
+        New-Item -ItemType Directory -Path $script:LogsDir -Force | Out-Null
+    }
+    
     Write-Host "A log file will be created at: $script:LogFile" -ForegroundColor White
     Write-Host ""
     

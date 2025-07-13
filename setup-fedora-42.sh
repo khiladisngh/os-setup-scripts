@@ -61,7 +61,8 @@ readonly NC='\033[0m' # No Color
 TOTAL_STEPS=16
 CURRENT_STEP=0
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly LOG_FILE="${SCRIPT_DIR}/fedora_setup_$(date +%Y%m%d_%H%M%S).log"
+readonly LOGS_DIR="${SCRIPT_DIR}/logs"
+readonly LOG_FILE="${LOGS_DIR}/fedora_setup_$(date +%Y%m%d_%H%M%S).log"
 readonly BACKUP_DIR="${HOME}/.config_backup_$(date +%Y%m%d_%H%M%S)"
 
 # WSL Detection
@@ -1010,12 +1011,16 @@ main() {
     clear
     echo -e "${BOLD}${CYAN}Welcome to the Fedora 42 Development Environment Setup Script!${NC}"
     echo -e "This script will install and configure a suite of modern development tools."
+    
+    # Create logs directory if it doesn't exist
+    mkdir -p "$LOGS_DIR"
+    
     echo -e "A log file will be created at: ${LOG_FILE}\n"
 
-    if ! confirm "Do you want to begin the installation?" "y"; then
-        echo "Installation aborted by user."
-        exit 0
-    fi
+if ! confirm "Do you want to begin the installation?" "y"; then
+    echo "Installation aborted by user."
+    exit 0
+fi
 
     create_backup_dir
 

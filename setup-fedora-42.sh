@@ -58,7 +58,7 @@ readonly BOLD='\033[1m'
 readonly NC='\033[0m' # No Color
 
 # --- Global Variables ---
-TOTAL_STEPS=17
+TOTAL_STEPS=18
 CURRENT_STEP=0
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly LOGS_DIR="${SCRIPT_DIR}/logs"
@@ -755,8 +755,8 @@ source "$ZSH/oh-my-zsh.sh"
 # =============================================================================
 
 # Set preferred editor
-export EDITOR='nvim'
-export VISUAL='nvim'
+export EDITOR='code'
+export VISUAL='code'
 export LANG=en_US.UTF-8
 
 # =============================================================================
@@ -1568,24 +1568,104 @@ install_fonts() {
     next_step
 }
 
-# 15. GitHub CLI Installation
-install_github_cli() {
-    log "HEADER" "STEP 15/$TOTAL_STEPS: GITHUB CLI INSTALLATION"
+# 15. Development IDEs and Editors
+install_development_ides() {
+    log "HEADER" "STEP 15/$TOTAL_STEPS: DEVELOPMENT IDEs & EDITORS"
 
-    if command_exists gh; then
-        log "INFO" "GitHub CLI is already installed. Skipping."
-    else
-        log "INFO" "Installing GitHub CLI..."
-        sudo dnf install -y gh
+    # VSCode Installation
+    local vscode_installed=false
+    if command_exists code; then
+        vscode_installed=true
+        track_skipped "Visual Studio Code"
     fi
 
-    log "SUCCESS" "GitHub CLI installed."
+    if [[ "$vscode_installed" == "false" ]]; then
+        if confirm "Install Visual Studio Code?"; then
+            log "PROGRESS" "Installing Visual Studio Code..."
+            
+            # Add Microsoft's official repository
+            log "INFO" "Adding Microsoft's GPG key and repository..."
+            sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+            
+            # Create repository file
+            cat > /tmp/vscode.repo << 'EOF'
+[code]
+name=Visual Studio Code
+baseurl=https://packages.microsoft.com/yumrepos/vscode
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+EOF
+            sudo mv /tmp/vscode.repo /etc/yum.repos.d/vscode.repo
+            
+            # Install VSCode
+            if run_with_feedback "sudo dnf install -y code" "VSCode installation" "INSTALL"; then
+                track_installed "Visual Studio Code"
+                
+                log "INFO" "Installing useful VSCode extensions..."
+                # Install essential extensions
+                if command_exists code; then
+                    local extensions=(
+                        "ms-python.python"
+                        "rust-lang.rust-analyzer"
+                        "golang.go"
+                        "ms-vscode.cpptools"
+                        "bradlc.vscode-tailwindcss"
+                        "esbenp.prettier-vscode"
+                        "ms-vscode.vscode-json"
+                        "redhat.vscode-yaml"
+                        "ms-vscode-remote.remote-containers"
+                        "GitHub.copilot"
+                    )
+                    
+                    for extension in "${extensions[@]}"; do
+                        log "INFO" "Installing VSCode extension: $extension"
+                        code --install-extension "$extension" --force >/dev/null 2>&1 || true
+                    done
+                    
+                    track_installed "VSCode Extensions"
+                fi
+            else
+                track_failed "Visual Studio Code"
+            fi
+        else
+            track_skipped "Visual Studio Code (User declined)"
+        fi
+    fi
+    
+    # Alternative IDEs information
+    echo -e "\n${BOLD}${CYAN}💡 Other IDEs Available:${NC}"
+    echo -e "   ${GREEN}•${NC} JetBrains IDEs: Install via Toolbox or Flatpak"
+    echo -e "   ${GREEN}•${NC} Neovim: Advanced text editor (run 'sudo dnf install neovim')"
+    echo -e "   ${GREEN}•${NC} Emacs: Extensible text editor (run 'sudo dnf install emacs')"
+    echo -e "   ${GREEN}•${NC} Qt Creator: For Qt/C++ development"
+    echo -e "   ${GREEN}•${NC} KDevelop: KDE's integrated development environment"
+    echo ""
+    
     next_step
 }
 
-# 16. Create Comprehensive Aliases File
+# 16. GitHub CLI Installation
+install_github_cli() {
+    log "HEADER" "STEP 16/$TOTAL_STEPS: GITHUB CLI INSTALLATION"
+
+    if command_exists gh; then
+        track_skipped "GitHub CLI"
+    else
+        log "PROGRESS" "Installing GitHub CLI..."
+        if run_with_feedback "sudo dnf install -y gh" "GitHub CLI installation" "INSTALL"; then
+            track_installed "GitHub CLI"
+        else
+            track_failed "GitHub CLI"
+        fi
+    fi
+
+    next_step
+}
+
+# 17. Create Comprehensive Aliases File
 create_aliases() {
-    log "HEADER" "STEP 16/$TOTAL_STEPS: CREATING ALIASES FILE"
+    log "HEADER" "STEP 17/$TOTAL_STEPS: CREATING ALIASES FILE"
 
     log "INFO" "Creating comprehensive aliases file at ~/.aliases..."
     backup_file "$HOME/.aliases"
@@ -1844,9 +1924,9 @@ generate_installation_summary() {
     echo ""
 }
 
-# 17. Finalize Installation
+# 18. Finalize Installation
 finalize_setup() {
-    log "HEADER" "STEP 17/$TOTAL_STEPS: FINALIZING SETUP"
+    log "HEADER" "STEP 18/$TOTAL_STEPS: FINALIZING SETUP"
 
     # Configure git to use delta for diffs
     log "INFO" "Configuring git to use delta for diffs..."
@@ -1965,6 +2045,7 @@ main() {
     install_modern_tools_cargo
     install_container_tools
     install_fonts
+    install_development_ides
     install_github_cli
     create_aliases
     finalize_setup

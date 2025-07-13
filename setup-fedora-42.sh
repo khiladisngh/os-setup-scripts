@@ -83,17 +83,14 @@ FAILED_TOOLS=()
 detect_wsl() {
     if [[ -f "/proc/version" ]] && grep -qi "microsoft\|wsl" /proc/version; then
         IS_WSL=true
-        return 0
     elif [[ -f "/proc/sys/kernel/osrelease" ]] && grep -qi "microsoft\|wsl" /proc/sys/kernel/osrelease; then
         IS_WSL=true
-        return 0
     elif [[ "${WSL_DISTRO_NAME:-}" != "" ]]; then
         IS_WSL=true
-        return 0
     else
         IS_WSL=false
-        return 1
     fi
+    return 0
 }
 
 # WSL-specific configuration function
@@ -395,7 +392,7 @@ install_dnf_packages() {
 
 check_requirements() {
     log "HEADER" "STEP 1/$TOTAL_STEPS: CHECKING SYSTEM REQUIREMENTS"
-
+    echo "Checking WSL"
     # Detect WSL environment
     detect_wsl
     if [[ "$IS_WSL" == "true" ]]; then
@@ -465,7 +462,8 @@ update_system() {
     
     # Check if updates are available
     local updates_available
-    updates_available=$(sudo dnf check-update --quiet 2>/dev/null | wc -l)
+    # dnf check-update returns 100 when updates are available, 0 when none available, 1 on error
+    updates_available=$(sudo dnf check-update --quiet 2>/dev/null | wc -l || true)
     
     if [[ $updates_available -eq 0 ]]; then
         log "SUCCESS" "System is already up to date"

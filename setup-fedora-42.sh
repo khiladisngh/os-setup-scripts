@@ -489,7 +489,7 @@ install_essential_packages() {
     log "HEADER" "STEP 3/$TOTAL_STEPS: ESSENTIAL PACKAGES"
     log "INFO" "Installing essential packages required for other installations..."
     
-    # Essential packages that other installations depend on
+    # Essential packages that other installations depend on (Fedora-specific names)
     local essential_packages=(
         "curl"
         "wget"
@@ -503,37 +503,131 @@ install_essential_packages() {
         "gzip"
         "which"
         "ca-certificates"
-        "gnupg"
-        "software-properties-common"
+        "gnupg2"
         "dnf-plugins-core"
+        "gcc"
+        "make"
+        "kernel-devel"
+        "kernel-headers"
     )
     
-    # Check and install each essential package
+    # Package name mapping for alternatives
+    declare -A package_alternatives=(
+        ["wget"]="wget wget2"
+        ["gnupg"]="gnupg2"
+        ["gnupg2"]="gnupg2"
+    )
+    
     local packages_to_install=()
+    local installed_count=0
+    local failed_packages=()
+    
+    log "INFO" "Checking essential packages individually..."
+    
     for package in "${essential_packages[@]}"; do
-        if ! rpm -q "$package" &>/dev/null; then
-            packages_to_install+=("$package")
-        else
-            log "INFO" "$package is already installed"
+        # Check if package is already installed
+        if rpm -q "$package" &>/dev/null; then
+            track_skipped "$package"
+            installed_count=$((installed_count + 1))
+            continue
+        fi
+        
+        # Check for alternative packages if the main one isn't found
+        local found_alternative=false
+        if [[ -n "${package_alternatives[$package]:-}" ]]; then
+            for alt_package in ${package_alternatives[$package]}; do
+                if rpm -q "$alt_package" &>/dev/null; then
+                    track_skipped "$package (via $alt_package)"
+                    found_alternative=true
+                    installed_count=$((installed_count + 1))
+                    break
+                fi
+            done
+        fi
+        
+        if [[ "$found_alternative" == "false" ]]; then
+            # Check if command exists (in case installed via different package name)
+            local cmd_name="$package"
+            if [[ "$package" == "gnupg2" ]]; then
+                cmd_name="gpg"
+            elif [[ "$package" == "ca-certificates" ]]; then
+                # ca-certificates doesn't have a direct command, check for cert files
+                if [[ -d "/etc/ssl/certs" && -n "$(ls -A /etc/ssl/certs 2>/dev/null)" ]]; then
+                    track_skipped "$package"
+                    installed_count=$((installed_count + 1))
+                    continue
+                fi
+            fi
+            
+            if command_exists "$cmd_name"; then
+                track_skipped "$package"
+                installed_count=$((installed_count + 1))
+            else
+                packages_to_install+=("$package")
+            fi
         fi
     done
     
     if [[ ${#packages_to_install[@]} -gt 0 ]]; then
         log "PROGRESS" "Installing ${#packages_to_install[@]} essential packages: ${packages_to_install[*]}"
-        if run_with_feedback "sudo dnf install -y ${packages_to_install[*]}" "Essential packages installation" "INSTALL"; then
-            for package in "${packages_to_install[@]}"; do
+        
+        # Install packages individually for better error handling
+        for package in "${packages_to_install[@]}"; do
+            log "INSTALL" "Installing $package..."
+            
+            # Use --skip-unavailable and --best to handle package conflicts
+            if sudo dnf install -y --skip-unavailable --best "$package" 2>/dev/null; then
                 track_installed "$package"
-            done
+            else
+                # Try alternative installation methods for specific packages
+                case "$package" in
+                    "wget")
+                        # Try wget2 as an alternative
+                        if sudo dnf install -y --skip-unavailable wget2 2>/dev/null; then
+                            track_installed "wget (via wget2)"
+                        else
+                            log "WARNING" "Failed to install wget, but it might already be available as wget2"
+                            track_skipped "wget (system default)"
+                        fi
+                        ;;
+                    "gnupg2")
+                        # gnupg2 might already be installed as part of base system
+                        if command_exists gpg; then
+                            track_skipped "gnupg2 (system default)"
+                        else
+                            failed_packages+=("$package")
+                            track_failed "$package"
+                        fi
+                        ;;
+                    "ca-certificates")
+                        # ca-certificates might be part of base system
+                        if [[ -d "/etc/ssl/certs" ]]; then
+                            track_skipped "ca-certificates (system default)"
+                        else
+                            failed_packages+=("$package")
+                            track_failed "$package"
+                        fi
+                        ;;
+                    *)
+                        failed_packages+=("$package")
+                        track_failed "$package"
+                        ;;
+                esac
+            fi
+        done
+        
+        if [[ ${#failed_packages[@]} -eq 0 ]]; then
+            log "SUCCESS" "All essential packages installed successfully"
         else
-            for package in "${packages_to_install[@]}"; do
-                track_failed "$package"
-            done
+            log "WARNING" "Some packages failed to install: ${failed_packages[*]}"
+            log "INFO" "This might not affect the overall installation"
         fi
     else
-        log "SUCCESS" "All essential packages are already installed"
-        track_skipped "Essential Packages"
+        log "SUCCESS" "All essential packages are already available"
+        track_skipped "Essential Packages (All available)"
     fi
     
+    log "INFO" "Essential packages summary: $installed_count already available, ${#packages_to_install[@]} needed installation"
     next_step
 }
 
@@ -1223,75 +1317,115 @@ install_container_tools() {
     
     if command_exists docker; then
         docker_installed=true
-        log "INFO" "Docker is already installed"
+        track_skipped "Docker"
     fi
     
     if command_exists podman; then
         podman_installed=true
-        log "INFO" "Podman is already installed"
+        track_skipped "Podman"
     fi
 
-    if [[ "$docker_installed" == "true" && "$podman_installed" == "true" ]]; then
-        log "INFO" "Both Docker and Podman are already installed. Skipping."
-        next_step
-        return
-    fi
-
-    if ! confirm "Install Docker and Podman?"; then
-        log "INFO" "Skipping container tools installation."
-        next_step
-        return
-    fi
-
-    # WSL-specific container setup
+    # WSL-specific container setup - Skip Docker, install only Podman
     if [[ "$IS_WSL" == "true" ]]; then
-        log "INFO" "WSL detected. Installing container tools compatible with WSL..."
-        log "INFO" "Note: For best WSL experience, consider using Docker Desktop for Windows."
+        log "INFO" "WSL environment detected. Configuring container tools for WSL..."
         
-        if [[ "$podman_installed" == "false" ]]; then
-            log "INFO" "Installing Podman (lightweight container engine)..."
-            sudo dnf install -y podman podman-compose
-        fi
+        echo -e "\n${BOLD}${YELLOW}📋 WSL Container Strategy:${NC}"
+        echo -e "   ${YELLOW}•${NC} ${BOLD}Docker:${NC} Automatically skipped in WSL"
+        echo -e "   ${YELLOW}•${NC} ${BOLD}Podman:${NC} Installing lightweight container engine"
+        echo -e "   ${CYAN}•${NC} ${BOLD}Recommendation:${NC} Use Docker Desktop for Windows for full Docker support"
+        echo ""
         
+        # Automatically skip Docker installation in WSL
         if [[ "$docker_installed" == "false" ]]; then
-            # Docker installation for WSL (without systemd service management)
-            log "INFO" "Installing Docker (without systemd service)..."
-            sudo dnf install -y dnf-plugins-core
-            sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-            sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-            
-            log "INFO" "Adding current user ($USER) to the 'docker' group..."
-            sudo usermod -aG docker "$USER"
-            
-            log "WARNING" "In WSL, Docker daemon needs to be started manually or use Docker Desktop."
-            log "WARNING" "To start Docker: sudo dockerd &"
-            log "WARNING" "Or install Docker Desktop for Windows for seamless integration."
+            log "INFO" "Skipping Docker installation in WSL environment"
+            log "INFO" "Docker Desktop for Windows is the recommended solution for WSL"
+            log "INFO" "Benefits of Docker Desktop:"
+            log "INFO" "  • Seamless Windows-WSL integration"
+            log "INFO" "  • Automatic daemon management"
+            log "INFO" "  • GUI management interface"
+            log "INFO" "  • Better resource management"
+            track_skipped "Docker (WSL - Use Docker Desktop for Windows)"
         fi
+        
+        # Install Podman if not present
+        if [[ "$podman_installed" == "false" ]]; then
+            if confirm "Install Podman (lightweight container engine)?"; then
+                log "PROGRESS" "Installing Podman for WSL..."
+                                 if run_with_feedback "sudo dnf install -y podman podman-compose" "Podman installation" "INSTALL"; then
+                     track_installed "Podman"
+                     track_installed "Podman Compose"
+                     
+                     log "SUCCESS" "Podman installed successfully"
+                     log "INFO" "Podman works great in WSL for lightweight containerization"
+                     log "INFO" "Use 'podman' commands just like Docker: podman run, podman build, etc."
+                 else
+                     track_failed "Podman"
+                 fi
+             else
+                 track_skipped "Podman (User declined)"
+             fi
+        fi
+        
+        echo -e "\n${BOLD}${CYAN}💡 Container Usage in WSL:${NC}"
+        echo -e "   ${GREEN}•${NC} For Docker: Install Docker Desktop for Windows"
+        echo -e "   ${GREEN}•${NC} For Podman: Use installed Podman directly"
+        echo -e "   ${GREEN}•${NC} Both tools share similar command syntax"
+        echo ""
         
     else
-        # Regular Linux installation
-        if [[ "$podman_installed" == "false" ]]; then
-            log "INFO" "Installing Podman (Fedora's native container engine)..."
-            sudo dnf install -y podman podman-compose
-        fi
+        # Regular Linux installation - Ask user for both Docker and Podman
+        if [[ "$docker_installed" == "true" && "$podman_installed" == "true" ]]; then
+            log "SUCCESS" "Both Docker and Podman are already installed. Skipping."
+                         track_skipped "Container Tools (All installed)"
+             next_step
+             return
+         fi
 
+                 if ! confirm "Install container tools (Docker and Podman)?"; then
+             log "INFO" "Skipping container tools installation."
+             track_skipped "Container Tools (User declined)"
+             next_step
+             return
+         fi
+
+         # Install Podman (Fedora's native container engine)
+         if [[ "$podman_installed" == "false" ]]; then
+             log "PROGRESS" "Installing Podman (Fedora's native container engine)..."
+             if run_with_feedback "sudo dnf install -y podman podman-compose" "Podman installation" "INSTALL"; then
+                 track_installed "Podman"
+                 track_installed "Podman Compose"
+             else
+                 track_failed "Podman"
+             fi
+         fi
+
+        # Install Docker
         if [[ "$docker_installed" == "false" ]]; then
-            log "INFO" "Installing Docker..."
-            sudo dnf install -y dnf-plugins-core
-            sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-            sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-            log "INFO" "Starting and enabling Docker service..."
-            sudo systemctl start docker
-            sudo systemctl enable docker
-
-            log "INFO" "Adding current user ($USER) to the 'docker' group..."
-            sudo usermod -aG docker "$USER"
-            log "WARNING" "You must log out and log back in for the Docker group changes to take effect."
+            log "PROGRESS" "Installing Docker..."
+            if run_with_feedback "sudo dnf install -y dnf-plugins-core" "Docker prerequisites" "INSTALL" &&
+               run_with_feedback "sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo" "Docker repository setup" "INSTALL" &&
+               run_with_feedback "sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin" "Docker installation" "INSTALL"; then
+                
+                log "INFO" "Starting and enabling Docker service..."
+                if run_with_feedback "sudo systemctl start docker && sudo systemctl enable docker" "Docker service setup" "INSTALL"; then
+                    log "INFO" "Adding current user ($USER) to the 'docker' group..."
+                    sudo usermod -aG docker "$USER"
+                    
+                                         track_installed "Docker Engine"
+                     track_installed "Docker Compose"
+                     track_installed "Docker Buildx"
+                     
+                     log "WARNING" "You must log out and log back in for Docker group changes to take effect."
+                 else
+                     track_failed "Docker Service Setup"
+                 fi
+             else
+                 track_failed "Docker Installation"
+             fi
         fi
     fi
 
-    log "SUCCESS" "Container tools installed successfully."
+    log "SUCCESS" "Container tools setup completed."
     next_step
 }
 
@@ -1658,7 +1792,7 @@ generate_installation_summary() {
     local total_time=$(($(date +%s) - INSTALL_START_TIME))
     
     echo -e "\n${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║                           📊 INSTALLATION SUMMARY REPORT                            ║${NC}"
+    echo -e "${BOLD}${CYAN}║                           📊 INSTALLATION SUMMARY REPORT                             ║${NC}"
     echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════════════════════════════╝${NC}\n"
     
     echo -e "${BOLD}${WHITE}⏱️  Total Installation Time: ${GREEN}$(format_time $total_time)${NC}\n"
@@ -1772,7 +1906,7 @@ main() {
     
     # Enhanced welcome screen
     echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║                    🚀 FEDORA 42 DEVELOPMENT ENVIRONMENT SETUP                       ║${NC}"
+    echo -e "${BOLD}${CYAN}║                    🚀 FEDORA 42 DEVELOPMENT ENVIRONMENT SETUP                        ║${NC}"
     echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════════════════════════════╝${NC}\n"
     
     echo -e "${BOLD}${WHITE}📋 This script will install and configure:${NC}"

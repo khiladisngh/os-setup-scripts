@@ -348,31 +348,108 @@ track_failed() {
     log "ERROR" "$tool installation failed"
 }
 
-# Run command with enhanced feedback
+# Docker-like progress display with limited lines and collapse
+run_with_progress() {
+    local command="$1"
+    local description="$2"
+    local log_level="${3:-INFO}"
+    local max_lines="${4:-6}"
+    
+    log "$log_level" "Running: $description"
+    
+    # Create temporary file for output
+    local temp_output
+    temp_output=$(mktemp)
+    
+    # Progress display variables
+    local progress_lines=()
+    local lines_shown=0
+    local spinner_chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    local spinner_idx=0
+    
+    echo -e "${CYAN}┌─ $description${NC}"
+    
+    # Start command and capture output
+    eval "$command" > "$temp_output" 2>&1 &
+    local pid=$!
+    
+    # Monitor progress
+    while kill -0 "$pid" 2>/dev/null; do
+        # Read current output
+        if [[ -s "$temp_output" ]]; then
+            # Get last few lines
+            local current_lines
+            mapfile -t current_lines < <(tail -n $max_lines "$temp_output" 2>/dev/null)
+            
+            # Clear previous display
+            if [[ $lines_shown -gt 0 ]]; then
+                for ((i=0; i<lines_shown; i++)); do
+                    printf "\033[1A\033[K"
+                done
+            fi
+            
+            # Show current progress with spinner
+            local spinner_char=${spinner_chars:$spinner_idx:1}
+            lines_shown=0
+            
+            for line in "${current_lines[@]}"; do
+                if [[ -n "$line" ]]; then
+                    local clean_line
+                    clean_line=$(echo "$line" | sed 's/^[[:space:]]*//' | cut -c1-70)
+                    if [[ -n "$clean_line" ]]; then
+                        echo -e "${CYAN}│${NC} $spinner_char $clean_line"
+                        lines_shown=$((lines_shown + 1))
+                    fi
+                fi
+            done
+            
+            # Update spinner
+            spinner_idx=$(( (spinner_idx + 1) % ${#spinner_chars} ))
+        fi
+        
+        sleep 0.5
+    done
+    
+    # Wait for process to complete
+    wait "$pid"
+    local exit_code=$?
+    
+    # Clear progress display
+    if [[ $lines_shown -gt 0 ]]; then
+        for ((i=0; i<lines_shown; i++)); do
+            printf "\033[1A\033[K"
+        done
+    fi
+    
+    # Show final collapsed status
+    if [[ $exit_code -eq 0 ]]; then
+        echo -e "${CYAN}└─${NC} ${GREEN}✓${NC} $description ${GREEN}completed successfully${NC}"
+        log "SUCCESS" "$description completed successfully"
+    else
+        echo -e "${CYAN}└─${NC} ${RED}✗${NC} $description ${RED}failed (exit code: $exit_code)${NC}"
+        log "ERROR" "$description failed with exit code $exit_code"
+        
+        # Show error details for failed commands
+        if [[ -s "$temp_output" ]]; then
+            echo -e "${RED}   Error details:${NC}"
+            tail -n 3 "$temp_output" | sed 's/^/   │ /'
+        fi
+    fi
+    
+    # Cleanup
+    rm -f "$temp_output"
+    
+    return $exit_code
+}
+
+# Run command with enhanced feedback (kept for backward compatibility)
 run_with_feedback() {
     local command="$1"
     local description="$2"
     local log_level="${3:-INFO}"
     
-    log "$log_level" "Running: $description"
-    
-    # Run command in background to show spinner
-    eval "$command" &
-    local pid=$!
-    
-    # Show spinner while command runs
-    show_spinner "$pid" "$description"
-    
-    # Wait for command to complete and check exit code
-    wait "$pid"
-    local exit_code=$?
-    
-    if [[ $exit_code -eq 0 ]]; then
-        log "SUCCESS" "$description completed successfully"
-    else
-        log "ERROR" "$description failed with exit code $exit_code"
-        return $exit_code
-    fi
+    # Use the new progress display
+    run_with_progress "$command" "$description" "$log_level" 8
 }
 
 # Enhanced DNF installation with progress

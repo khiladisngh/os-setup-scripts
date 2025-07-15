@@ -773,7 +773,11 @@ install_zsh_ohmyzsh() {
 
     if [[ "$SHELL" != "/bin/zsh" ]] && [[ "$SHELL" != "/usr/bin/zsh" ]]; then
         log "INFO" "Changing default shell to ZSH for user $USER."
-        sudo chsh -s "$(which zsh)" "$USER"
+        if sudo chsh -s "$(which zsh)" "$USER"; then
+            log "SUCCESS" "Default shell changed to ZSH."
+        else
+            log "ERROR" "Failed to change default shell to ZSH."
+        fi
         log "WARNING" "You will need to log out and log back in for the shell change to take effect."
     else
         log "INFO" "ZSH is already the default shell."

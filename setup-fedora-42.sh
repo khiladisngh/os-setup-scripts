@@ -1265,7 +1265,7 @@ install_cpp_tools() {
     if [[ ${#missing_tools[@]} -gt 0 ]]; then
         log "PROGRESS" "Installing C++ build essentials and tools. Missing: ${missing_tools[*]}"
         if run_with_feedback "sudo dnf group install -y kde-software-development c-development" "C++ development groups" "INSTALL" &&
-           run_with_feedback "sudo dnf install -y cmake gdb valgrind clang lldb" "C++ development tools" "INSTALL"; then
+            run_with_feedback "sudo dnf install -y cmake gdb valgrind clang lldb" "C++ development tools" "INSTALL"; then
             for tool in "${missing_tools[@]}"; do
                 track_installed "$tool"
             done
@@ -1434,19 +1434,19 @@ install_container_tools() {
         if [[ "$podman_installed" == "false" ]]; then
             if confirm "Install Podman (lightweight container engine)?"; then
                 log "PROGRESS" "Installing Podman for WSL..."
-                                 if run_with_feedback "sudo dnf install -y podman podman-compose" "Podman installation" "INSTALL"; then
-                     track_installed "Podman"
-                     track_installed "Podman Compose"
-                     
-                     log "SUCCESS" "Podman installed successfully"
-                     log "INFO" "Podman works great in WSL for lightweight containerization"
-                     log "INFO" "Use 'podman' commands just like Docker: podman run, podman build, etc."
-                 else
-                     track_failed "Podman"
-                 fi
-             else
-                 track_skipped "Podman (User declined)"
-             fi
+                    if run_with_feedback "sudo dnf install -y podman podman-compose" "Podman installation" "INSTALL"; then
+                    track_installed "Podman"
+                    track_installed "Podman Compose"
+
+                    log "SUCCESS" "Podman installed successfully"
+                    log "INFO" "Podman works great in WSL for lightweight containerization"
+                    log "INFO" "Use 'podman' commands just like Docker: podman run, podman build, etc."
+                else
+                    track_failed "Podman"
+                fi
+            else
+                track_skipped "Podman (User declined)"
+            fi
         fi
         
         echo -e "\n${BOLD}${CYAN}💡 Container Usage in WSL:${NC}"
@@ -1459,35 +1459,35 @@ install_container_tools() {
         # Regular Linux installation - Ask user for both Docker and Podman
         if [[ "$docker_installed" == "true" && "$podman_installed" == "true" ]]; then
             log "SUCCESS" "Both Docker and Podman are already installed. Skipping."
-                         track_skipped "Container Tools (All installed)"
-             next_step
-             return
-         fi
+                        track_skipped "Container Tools (All installed)"
+            next_step
+            return
+        fi
 
-                 if ! confirm "Install container tools (Docker and Podman)?"; then
-             log "INFO" "Skipping container tools installation."
-             track_skipped "Container Tools (User declined)"
-             next_step
-             return
-         fi
+                if ! confirm "Install container tools (Docker and Podman)?"; then
+            log "INFO" "Skipping container tools installation."
+            track_skipped "Container Tools (User declined)"
+            next_step
+            return
+        fi
 
-         # Install Podman (Fedora's native container engine)
-         if [[ "$podman_installed" == "false" ]]; then
-             log "PROGRESS" "Installing Podman (Fedora's native container engine)..."
-             if run_with_feedback "sudo dnf install -y podman podman-compose" "Podman installation" "INSTALL"; then
-                 track_installed "Podman"
-                 track_installed "Podman Compose"
-             else
-                 track_failed "Podman"
-             fi
-         fi
+        # Install Podman (Fedora's native container engine)
+        if [[ "$podman_installed" == "false" ]]; then
+            log "PROGRESS" "Installing Podman (Fedora's native container engine)..."
+            if run_with_feedback "sudo dnf install -y podman podman-compose" "Podman installation" "INSTALL"; then
+                track_installed "Podman"
+                track_installed "Podman Compose"
+            else
+                track_failed "Podman"
+            fi
+        fi
 
         # Install Docker
         if [[ "$docker_installed" == "false" ]]; then
             log "PROGRESS" "Installing Docker..."
             if run_with_feedback "sudo dnf install -y dnf-plugins-core" "Docker prerequisites" "INSTALL" &&
-               run_with_feedback "sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo" "Docker repository setup" "INSTALL" &&
-               run_with_feedback "sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin" "Docker installation" "INSTALL"; then
+                run_with_feedback "sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo" "Docker repository setup" "INSTALL" &&
+                run_with_feedback "sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin" "Docker installation" "INSTALL"; then
                 
                 log "INFO" "Starting and enabling Docker service..."
                 if run_with_feedback "sudo systemctl start docker && sudo systemctl enable docker" "Docker service setup" "INSTALL"; then
@@ -1528,18 +1528,18 @@ install_fonts() {
     
     # Check for FiraCode Nerd Font with multiple patterns
     if fc-list | grep -qi "FiraCode.*Nerd" || \
-       fc-list | grep -qi "FiraCode.*NF" || \
-       fc-list | grep -qi "FiraCodeNerdFont" || \
-       ls "$font_dir" | grep -qi "FiraCode.*Nerd" 2>/dev/null; then
+        fc-list | grep -qi "FiraCode.*NF" || \
+        fc-list | grep -qi "FiraCodeNerdFont" || \
+        ls "$font_dir" | grep -qi "FiraCode.*Nerd" 2>/dev/null; then
         firacode_installed=true
         track_skipped "FiraCode Nerd Font"
     fi
     
     # Check for JetBrainsMono Nerd Font with multiple patterns
     if fc-list | grep -qi "JetBrainsMono.*Nerd" || \
-       fc-list | grep -qi "JetBrainsMono.*NF" || \
-       fc-list | grep -qi "JetBrainsMonoNerdFont" || \
-       ls "$font_dir" | grep -qi "JetBrainsMono.*Nerd" 2>/dev/null; then
+        fc-list | grep -qi "JetBrainsMono.*NF" || \
+        fc-list | grep -qi "JetBrainsMonoNerdFont" || \
+        ls "$font_dir" | grep -qi "JetBrainsMono.*Nerd" 2>/dev/null; then
         jetbrains_installed=true
         track_skipped "JetBrainsMono Nerd Font"
     fi
@@ -1776,7 +1776,6 @@ alias du='dust'
 alias df='duf'
 alias ps='procs'
 alias ping='gping'
-alias z='zoxide init zsh' # zoxide is handled by .zshrc eval
 
 # --- System & Package Management ---
 alias update='sudo dnf upgrade --refresh -y'

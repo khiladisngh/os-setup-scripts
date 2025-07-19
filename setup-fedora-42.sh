@@ -557,10 +557,18 @@ update_system() {
         log "INFO" "Found $updates_available package updates available"
         log "PROGRESS" "Updating and upgrading system packages. This may take a while..."
         
-        if run_with_feedback "sudo dnf upgrade --skip-broken --nobest --refresh -y" "System package update" "INSTALL"; then
+    if [[ "$IS_WSL" == "true" ]]; then
+            if run_with_feedback "sudo dnf upgrade --refresh -y" "System package update" "INSTALL"; then
             track_installed "System Updates"
         else
             track_failed "System Updates"
+        fi
+        else
+            if run_with_feedback "sudo dnf upgrade --skip-broken --nobest --refresh -y" "System package update" "INSTALL"; then
+                track_installed "System Updates"
+            else
+                track_failed "System Updates"
+            fi
         fi
     fi
     

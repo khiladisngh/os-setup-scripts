@@ -1498,17 +1498,17 @@ install_container_tools() {
                     log "INFO" "Adding current user ($USER) to the 'docker' group..."
                     sudo usermod -aG docker "$USER"
                     
-                                         track_installed "Docker Engine"
-                     track_installed "Docker Compose"
-                     track_installed "Docker Buildx"
-                     
-                     log "WARNING" "You must log out and log back in for Docker group changes to take effect."
-                 else
-                     track_failed "Docker Service Setup"
-                 fi
-             else
-                 track_failed "Docker Installation"
-             fi
+                    track_installed "Docker Engine"
+                    track_installed "Docker Compose"
+                    track_installed "Docker Buildx"
+                    
+                    log "WARNING" "You must log out and log back in for Docker group changes to take effect."
+                else
+                    track_failed "Docker Service Setup"
+                fi
+            else
+                track_failed "Docker Installation"
+            fi
         fi
     fi
 
